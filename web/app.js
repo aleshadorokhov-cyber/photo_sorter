@@ -682,7 +682,7 @@ async function testShortcut() {
   const photo = examples[0];
   await runShortcut({ [TEST_ALBUM]: [photo] },
     `Проверка: в «Фото» должен появиться альбом «${TEST_ALBUM}» с одним снимком ${photo}.`
-    + ' Если альбом назван длинной строкой со скобками, в Create Photo Album вместо Repeat Item выбрано другое.'
+    + ' Если альбом назван длинной строкой со скобками, в команде не хватает действия «Get All Keys in Dictionary» (как добавить, написано в начале шагов ниже) или в Create Photo Album выбрано не Repeat Item.'
     + ' Если альбом пустой, в Find Photos после «Name is» не выбран Repeat Item 2.'
     + ' Проверочный альбом потом удалите.');
 }

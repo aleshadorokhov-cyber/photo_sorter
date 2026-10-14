@@ -84,6 +84,9 @@ pre { white-space: pre-wrap; font: 14px/1.4 ui-monospace, Menlo, monospace; back
 .help .ru { color: var(--muted); font-size: 14px; }
 .help h3 { font-size: 16px; margin: 18px 0 8px; }
 .help .warn { border-left: 3px solid #e0a100; padding-left: 10px; }
+.help div.warn { margin-bottom: 12px; }
+.help div.warn ol { margin-bottom: 8px; }
+.help div.warn p { margin-bottom: 8px; }
 .help ul { margin: 0 0 12px; padding-left: 20px; }
 .help .steps > li { margin-bottom: 12px; }
 .help .steps p { margin: 4px 0 0; }
