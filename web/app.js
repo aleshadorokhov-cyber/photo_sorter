@@ -622,8 +622,11 @@ function setupShortcutName() {
 function libraryName(photo) {
   const base = (photo.name || '').replace(/\.[^.]+$/, '');
   if (!base || /^(FullSizeRender|image|photo)$/i.test(base)) return null;
-  // IMG_E1234 — отредактированная копия, в галерее она называется IMG_1234
-  return base.replace(/^IMG_E(\d+)$/i, 'IMG_$1');
+  // Снимки iPhone называются IMG_1234. Отредактированная копия приходит как IMG_E1234,
+  // а при переводе HEIC в JPEG браузер может дописать хвост вроде IMG_1234_ab12cd:
+  // в галерее это всё тот же IMG_1234
+  const camera = base.match(/^IMG_E?(\d{4})(?!\d)/i);
+  return camera ? `IMG_${camera[1]}` : base;
 }
 
 function albumPlan() {
@@ -636,11 +639,12 @@ function albumPlan() {
     plan[`Сортировка: ${categoryName(group.id)}`] = names;
     photos += names.length;
   }
-  return { plan, albums: Object.keys(plan).length, photos, skipped };
+  const examples = Object.values(plan).flat().slice(0, 3);
+  return { plan, albums: Object.keys(plan).length, photos, skipped, examples };
 }
 
 async function toAlbums() {
-  const { plan, albums, photos, skipped } = albumPlan();
+  const { plan, albums, photos, skipped, examples } = albumPlan();
   const note = $('#albums-note');
   if (!albums) {
     note.textContent = 'Ни один снимок не найти по имени файла.';
@@ -653,7 +657,7 @@ async function toAlbums() {
     return;
   }
   const name = shortcutName();
-  note.textContent = `Скопировал раскладку: альбомов ${albums}, фото ${photos}.`
+  note.textContent = `Скопировал раскладку: альбомов ${albums}, фото ${photos}, ищу по именам вроде ${examples.join(', ')}.`
     + (skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : '')
     + ` Открываю команду «${name}». Если Shortcuts пишут, что её нет (Could not find the shortcut),`
     + ' сначала соберите её по шагам ниже или впишите там её точное имя.';
