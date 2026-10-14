@@ -72,6 +72,10 @@ dd { margin: 0; word-break: break-word; }
 .text summary { color: var(--accent); cursor: pointer; margin-bottom: 8px; }
 pre { white-space: pre-wrap; font: 14px/1.4 ui-monospace, Menlo, monospace; background: var(--bg); padding: 10px; border-radius: 10px; }
 .credits { margin: 12px 0 0; font-size: 12px; }
+.albums { margin-top: 12px; }
+.albums .help { margin-top: 12px; }
+.albums #albums-note { margin: 8px 0 0; }
+.albums #albums-note:empty { display: none; }
 .help summary { color: var(--accent); cursor: pointer; font-weight: 600; }
 .help[open] summary { margin-bottom: 10px; }
 .help ol { margin: 0 0 12px; padding-left: 20px; }

@@ -593,6 +593,50 @@ async function saveZip(list, zipName) {
   }
 }
 
+// ---------- Альбомы в «Фото» через «Команды» ----------
+
+const SHORTCUT_NAME = 'По полочкам';
+
+// Имя снимка в «Фото», как его видит действие «Найти фото»: имя файла без расширения
+function libraryName(photo) {
+  const base = (photo.name || '').replace(/\.[^.]+$/, '');
+  if (!base || /^(FullSizeRender|image|photo)$/i.test(base)) return null;
+  // IMG_E1234 — отредактированная копия, в галерее она называется IMG_1234
+  return base.replace(/^IMG_E(\d+)$/i, 'IMG_$1');
+}
+
+function albumPlan() {
+  const plan = {};
+  let photos = 0, skipped = 0;
+  for (const group of groups()) {
+    const names = [...new Set(group.photos.map(libraryName).filter(Boolean))];
+    skipped += group.photos.length - group.photos.filter(libraryName).length;
+    if (!names.length) continue;
+    plan[`Сортировка: ${categoryName(group.id)}`] = names;
+    photos += names.length;
+  }
+  return { plan, albums: Object.keys(plan).length, photos, skipped };
+}
+
+async function toAlbums() {
+  const { plan, albums, photos, skipped } = albumPlan();
+  const note = $('#albums-note');
+  if (!albums) {
+    note.textContent = 'Ни один снимок не найти по имени файла.';
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(plan));
+  } catch {
+    note.textContent = 'Safari не дал скопировать список. Нажмите кнопку ещё раз.';
+    return;
+  }
+  note.textContent = `Скопировал раскладку: альбомов ${albums}, фото ${photos}.`
+    + (skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : '')
+    + ` Открываю команду «${SHORTCUT_NAME}»; если она не открылась, запустите её в «Командах» сами.`;
+  location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}`;
+}
+
 // ---------- Экран ----------
 
 function groups() {
@@ -685,6 +729,8 @@ function render() {
   $('#actions').hidden = state.photos.length === 0;
   $('#summary-row').hidden = state.photos.length === 0;
   $('#save-all').disabled = state.busy || list.length === 0;
+  $('#albums').hidden = list.length === 0;
+  $('#to-albums').disabled = state.busy;
   setText($('#summary'), state.photos.length
     ? `${state.photos.length} фото, категорий: ${list.length}` + (failed ? `. Не удалось открыть: ${failed}` : '')
     : '');
@@ -820,6 +866,7 @@ for (const button of document.querySelectorAll('[data-pick]')) {
 }
 $('#save-all').addEventListener('click', () => saveZip(groups(), `По полочкам ${isoDate(new Date())}.zip`));
 $('#clear').addEventListener('click', clearAll);
+$('#to-albums').addEventListener('click', toAlbums);
 $('#photo-close').addEventListener('click', () => $('#photo').close());
 document.addEventListener('visibilitychange', () => { if (state.busy) keepAwake(true); });
 // Без этого Safari на iPhone не подсвечивает нажатую кнопку
