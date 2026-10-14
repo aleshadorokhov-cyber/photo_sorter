@@ -82,6 +82,11 @@ pre { white-space: pre-wrap; font: 14px/1.4 ui-monospace, Menlo, monospace; back
 .help li { margin-bottom: 6px; }
 .help p:last-child { margin-bottom: 0; }
 .help .ru { color: var(--muted); font-size: 14px; }
+.help h3 { font-size: 16px; margin: 18px 0 8px; }
+.help ul { margin: 0 0 12px; padding-left: 20px; }
+.help .steps > li { margin-bottom: 12px; }
+.help .steps p { margin: 4px 0 0; }
+.help kbd { font: 14px ui-monospace, Menlo, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
 .help .ru::before { content: "· "; }
 a.button { display: block; text-align: center; text-decoration: none; font-weight: 600; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; }
 a.button:active { filter: brightness(.88); }
