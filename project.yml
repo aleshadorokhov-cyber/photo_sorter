@@ -32,6 +32,9 @@ targets:
       path: PhotoSorter/Info.plist
       properties:
         CFBundleDisplayName: По полочкам
+        # XcodeGen по умолчанию пишет сюда 1.0 и 1, а номер сборки должен расти с каждой сборкой в CI
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: ru
         ITSAppUsesNonExemptEncryption: false
         LSRequiresIPhoneOS: true

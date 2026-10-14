@@ -119,6 +119,11 @@ jobs:
           (cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/PhotoSorter.ipa" Payload)
           echo "APP=$APP" >> "$GITHUB_ENV"
           echo "VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Info.plist")" >> "$GITHUB_ENV"
+          # SideStore и TestFlight узнают новую версию по номеру сборки
+          BUILT=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP/Info.plist")
+          if [ "$BUILT" != "${{ github.run_number }}" ]; then
+            echo "::error::В Info.plist номер сборки $BUILT, а должен быть ${{ github.run_number }}"; exit 1
+          fi
           ls -lh PhotoSorter.ipa
 
       # Источник собирается на каждой сборке, чтобы ошибки в нём ловились ещё в PR.
@@ -129,8 +134,12 @@ jobs:
           TAG="v$VERSION-$BUILD"
           echo "TAG=$TAG" >> "$GITHUB_ENV"
           URL="https://github.com/${{ github.repository }}/releases/download/$TAG/PhotoSorter.ipa"
+          # Для слияния PR в описание версии идёт название PR, а не «Merge pull request»
+          NOTES=$(git log -1 --format=%s)
+          if [[ "$NOTES" == "Merge pull request"* ]]; then NOTES=$(git log -1 --format=%b | head -1); fi
+          echo "NOTES=$NOTES" >> "$GITHUB_ENV"
           python3 sidestore/make_source.py --app "$APP" --ipa PhotoSorter.ipa --url "$URL" \
-            --notes "$(git log -1 --format=%s)" --out source.json
+            --notes "$NOTES" --out source.json
           cat source.json
 
       - uses: actions/upload-artifact@v4
@@ -149,7 +158,7 @@ jobs:
           gh release create "$TAG" PhotoSorter.ipa source.json \
             --target "$GITHUB_SHA" \
             --title "По полочкам $TAG" \
-            --notes "$(git log -1 --format=%s)" \
+            --notes "$NOTES" \
             --latest
 
   testflight:
