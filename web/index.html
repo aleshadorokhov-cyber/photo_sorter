@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#00326E">
+<title>По полочкам</title>
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero">
+  <svg class="waves" viewBox="0 0 400 400" aria-hidden="true" preserveAspectRatio="xMaxYMax slice">
+  <g>
+    <circle cx="300" cy="300" r="230" fill="#EBF0D6" style="--i:0"/>
+    <circle cx="306" cy="310" r="225" fill="#9AC854" style="--i:1"/>
+    <circle cx="312" cy="320" r="220" fill="#4BAF46" style="--i:2"/>
+    <circle cx="318" cy="330" r="215" fill="#0A8F2D" style="--i:3"/>
+    <circle cx="324" cy="340" r="210" fill="#0078AE" style="--i:4"/>
+    <circle cx="330" cy="350" r="205" fill="#005491" style="--i:5"/>
+    <circle cx="336" cy="360" r="200" fill="#00326E" style="--i:6"/>
+  </g>
+  </svg>
+  <div class="hero-top">
+    <img src="icon.png" alt="" class="logo">
+    <div>
+      <h1>По полочкам</h1>
+      <p class="tagline">Нейросеть наводит порядок в галерее прямо на телефоне</p>
+    </div>
+  </div>
+  <ol id="stages" class="stages" data-stage="1">
+    <li>Выбрать</li>
+    <li>Разобрать</li>
+    <li>Разложить</li>
+  </ol>
+</header>
+
+<main>
+  <section id="intro" class="card intro">
+    <h2 class="headline">Тысячи снимков.<br><span>Идеальный порядок.</span></h2>
+    <p class="lead">Природа, еда, документы, чеки, скриншоты: нейросеть узнаёт, что на каждом фото, читает текст на снимках и раскладывает всё по альбомам. Свежие снимки сверху.</p>
+    <ul class="perks">
+      <li><span>🔒</span>Фото не покидают телефон</li>
+      <li><span>🧠</span>23 категории</li>
+      <li><span>📖</span>Читает текст на фото</li>
+      <li><span>✨</span>Без регистрации</li>
+    </ul>
+    <button id="pick" class="primary cta" data-pick disabled>Выбрать фото</button>
+    <p class="muted" id="sizes">Загружаю…</p>
+    <p class="muted">Как выбрать сразу весь альбом, написано внизу, в «Помощи».</p>
+    <p class="muted credits">Модели: OpenCLIP (MIT), EmbeddingGemma (Gemma Terms of Use), Tesseract (Apache 2.0). Города: GeoNames, CC BY 4.0.</p>
+  </section>
+
+  <section id="status" class="card status" hidden>
+    <p id="status-text"></p>
+    <progress id="status-bar" max="1" hidden></progress>
+  </section>
+
+  <details id="panel-groups" class="panel" open hidden>
+    <summary class="panel-head"><span class="panel-icon" aria-hidden="true">🗂️</span><span class="panel-title">Категории<small id="summary"></small></span></summary>
+    <div id="groups"></div>
+    <div class="panel-actions">
+      <button id="save-all" class="secondary">Скачать всё в «Файлы»</button>
+      <button id="clear" class="link">Начать заново</button>
+    </div>
+  </details>
+
+  <details id="albums" class="panel albums" open hidden>
+    <summary class="panel-head"><span class="panel-icon" aria-hidden="true">📥</span><span class="panel-title">Разложить в «Фото»<small id="albums-meta"></small></span></summary>
+    <p class="muted">По альбому «Сортировка: …» на категорию, из ваших же снимков, без копий. Запуск кнопкой внизу.</p>
+    <div id="install" class="install" hidden>
+      <a id="install-one" class="primary button" href="#">Установить «Разложить по полочкам»</a>
+      <a id="install-main" class="secondary button" href="#">Установить «По полочкам»</a>
+      <a id="install-add" class="secondary button" href="#">Установить «По полочкам добавить»</a>
+      <a id="install-remove" class="secondary button" href="#">Установить «По полочкам убрать»</a>
+      <p class="muted">Откроется Shortcuts: нажмите <b>Add Shortcut</b> и вернитесь сюда за следующей. Не переименовывайте команды: сайт и первая команда зовут остальные по имени. При первом запуске разрешите доступ к буферу обмена и полный доступ к «Фото».</p>
+    </div>
+    <label id="album-head" class="album-head"><span>Альбом уже есть в «Фото»</span><span class="all">все <input id="all-made" type="checkbox" class="switch" aria-label="Все альбомы уже есть в «Фото»"></span></label>
+    <div id="album-list" class="album-list"></div>
+    <label class="switch-row"><span><b>Убрать из альбома, откуда брали</b><small>iPhone спросит, из какого. Из «Фото» ничего не удаляется. Не включайте, если брали из Recents.</small></span><input id="remove-source" type="checkbox" class="switch"></label>
+  </details>
+
+  <details id="panel-help" class="panel help-panel">
+    <summary class="panel-head"><span class="panel-icon" aria-hidden="true">🛠️</span><span class="panel-title">Помощь и настройка<small>как выбрать весь альбом, команды iPhone</small></span></summary>
+    <details id="pick-help" class="help">
+      <summary>Как выбрать сразу весь альбом</summary>
+      <p>Названия кнопок даны как на iPhone с английским языком.</p>
+      <p><b>Весь альбом сразу.</b></p>
+      <ol>
+        <li>В «Фото» откройте альбом или Recents, нажмите <b>Select</b>, затем <b>Select All</b>.</li>
+        <li>Нажмите кнопку «Поделиться» (квадрат со стрелкой), затем <b>Save to Files</b>, выберите или создайте папку и нажмите <b>Save</b>.</li>
+        <li>Здесь нажмите «Выбрать фото», затем <b>Choose Files</b>, откройте эту папку, нажмите <b>Select</b>, затем <b>Select All</b> и <b>Open</b>.</li>
+      </ol>
+      <p><b>Через окно выбора.</b> Нажмите «Выбрать фото», затем <b>Photo Library</b>, откройте <b>Albums</b> и нужный альбом. Кнопки Select All там нет, но можно провести пальцем по миниатюрам, не отрывая его: отметятся все, по которым он прошёл.</p>
+      <p class="muted">Те же фото второй раз не добавятся, так что альбом можно докладывать частями.</p>
+    </details>
+    <details id="one-setup" class="help one-setup">
+      <summary id="one-summary">Одна кнопка вместо трёх</summary>
+      <div id="one-intro">
+        <p>Сейчас кнопка «Разложить по альбомам» запускает три команды по очереди, и после каждой нужно возвращаться сюда. Соберите четвёртую, короткую команду <b>Разложить по полочкам</b>: она сама вызовет ваши три, и всё сделается за одно нажатие. Три готовые команды не трогайте и не переименовывайте.</p>
+      </div>
+      <ol class="steps">
+        <li>В Shortcuts на вкладке <b>Shortcuts</b> нажмите «+» справа вверху. Нажмите <b>New Shortcut</b> вверху, затем <b>Rename</b>, введите <b>Разложить по полочкам</b> и <b>Done</b>.</li>
+        <li>Поиск внизу: <kbd>clipboard</kbd>, нажмите <b>Get Clipboard</b>.</li>
+        <li>Поиск: <kbd>get dictionary</kbd>, нажмите <b>Get Dictionary from Input</b>. Должно читаться «Get dictionary from <b>Clipboard</b>».</li>
+        <li>Поиск: <kbd>get dictionary</kbd>, нажмите <b>Get Dictionary Value</b> (оранжевая книжка). Нажмите <b>Key</b> и напечатайте <b>убрать</b>. Здесь печатать можно: это просто слово. Должно читаться «Get Value for убрать in <b>Dictionary</b>».</li>
+        <li>Поиск: <kbd>copy</kbd>, нажмите <b>Copy to Clipboard</b>. Читается «Copy <b>Dictionary Value</b> to clipboard».</li>
+        <li>Поиск: <kbd>run shortcut</kbd>, нажмите <b>Run Shortcut</b>. Нажмите синее <b>Shortcut</b> и выберите в списке <b>По полочкам убрать</b>.</li>
+        <li>Снова <b>Get Dictionary Value</b>, Key: <b>создать</b>. Последнее синее слово здесь будет Shortcut Result: нажмите его и выберите <b>Dictionary</b> с оранжевой книжкой; если его нет в строке над клавиатурой, нажмите <b>Select Variable</b> и коснитесь «Get dictionary from Clipboard». Должно читаться «Get Value for создать in <b>Dictionary</b>».</li>
+        <li>Снова <b>Copy to Clipboard</b>, затем <b>Run Shortcut</b> с командой <b>По полочкам</b>.</li>
+        <li>Снова <b>Get Dictionary Value</b>, Key: <b>добавить</b>, и так же выберите <b>Dictionary</b> вместо Shortcut Result.</li>
+        <li>Снова <b>Copy to Clipboard</b>, затем <b>Run Shortcut</b> с командой <b>По полочкам добавить</b>. Нажмите <b>Done</b>.</li>
+      </ol>
+      <p>Должно получиться так:</p>
+      <div class="recipe">
+        <div>Get Clipboard</div>
+        <div>Get dictionary from Clipboard</div>
+        <div>Get Value for убрать in Dictionary</div>
+        <div>Copy Dictionary Value to clipboard</div>
+        <div>Run По полочкам убрать</div>
+        <div>Get Value for создать in Dictionary</div>
+        <div>Copy Dictionary Value to clipboard</div>
+        <div>Run По полочкам</div>
+        <div>Get Value for добавить in Dictionary</div>
+        <div>Copy Dictionary Value to clipboard</div>
+        <div>Run По полочкам добавить</div>
+      </div>
+      <p>Проверка за одно нажатие: команда создаст альбом «Проверка одной кнопки» с одним снимком и тут же доложит в него второй. Если iPhone спросит, можно ли одной команде запускать другие, разрешите.</p>
+      <button id="test-one" class="secondary">Проверить на двух снимках</button>
+      <button id="use-one" class="primary">В альбоме два снимка: включить одну кнопку</button>
+      <button id="use-three" class="link" hidden>Вернуться к трём командам по очереди</button>
+    </details>
+    <details id="shortcut-help" class="help">
+      <summary>Первые три команды: как собрать и проверить</summary>
+      <p>Названия даны как на iPhone с английским языком. Займёт минут десять, потом команда просто запускается этой кнопкой.</p>
+      <a class="secondary button" href="shortcuts://create-shortcut">Открыть новую команду в Shortcuts</a>
+      <p class="muted">Или сами: приложение Shortcuts, вкладка <b>Library</b>, «+» справа вверху.</p>
+
+      <h3>Как работать в редакторе</h3>
+      <ul>
+        <li><b>Добавить действие.</b> Внизу экрана поле <b>Search Actions</b>. Нажмите его, введите слово из шага ниже и нажмите в списке действие с точно таким названием, как жирное в шаге. Оно добавится в команду и дальше читается уже фразой, например Get Dictionary from Input становится «Get dictionary from Clipboard».</li>
+        <li><b>Переставить.</b> Новое действие всегда встаёт в самый низ. Зажмите его за название и, не отпуская, тяните вверх на нужное место. Всё, что внутри повтора, сдвинуто вправо.</li>
+        <li><b>Синие слова</b> в действии можно менять. Нажмите синее слово: появится список или строка над клавиатурой с вариантами вроде <b>Repeat Item</b>. Нажмите нужный. Если его там нет, нажмите <b>Select Variable</b> и найдите его там.</li>
+        <li><b>Ошиблись</b> с синим словом: нажмите его ещё раз и выберите заново.</li>
+      </ul>
+      <p class="warn"><b>Важно:</b> Repeat Item, Repeat Item 2, Repeat Results, Dictionary, Dictionary Value и Clipboard нужно <b>выбирать</b> из списка, а не печатать буквами. Выбранное выглядит как плашка со значком: у Repeat Item и Repeat Results это серые стрелки повтора, у Dictionary оранжевая книжка. Если слова просто напечатаны, без значка, команда создаст пустой альбом с именем «Repeat Item». Тогда нажмите это поле, сотрите текст и выберите вариант в строке над клавиатурой или через <b>Select Variable</b>.</p>
+
+      <h3>Имя команды</h3>
+      <p>Нажмите <b>New Shortcut</b> вверху по центру, затем <b>Rename</b>, введите <b>По полочкам</b> и нажмите <b>Done</b> на клавиатуре.</p>
+
+      <div class="warn">
+        <p><b>Если команда уже собрана по прежним шагам</b> и альбом получается с названием из скобок: в прежних шагах не хватало одного действия.</p>
+        <ol>
+          <li>Добавьте <b>Get Dictionary Value</b> (поиск <kbd>get dictionary</kbd>) и перетащите его сразу под «Get dictionary from Clipboard», выше первого «Repeat with each…».</li>
+          <li>В нём нажмите синее слово <b>Value</b> и выберите <b>All Keys</b>. Если последнее синее слово не Dictionary, нажмите его и выберите <b>Dictionary</b> с оранжевой книжкой. Должно читаться «Get <b>All Keys</b> in <b>Dictionary</b>».</li>
+          <li>В первом «Repeat with each item in» нажмите <b>Dictionary</b> и выберите <b>Dictionary Value</b>.</li>
+        </ol>
+        <p>Если альбом назван верно, но пустой, почти всегда где-то напечатано слово вместо выбранной переменной:</p>
+        <ol>
+          <li>В «Get Value for <b>Repeat Item</b> in Dictionary» у Repeat Item должен быть значок серых стрелок. Если значка нет, нажмите Repeat Item, сотрите текст и выберите <b>Repeat Item</b> в строке над клавиатурой. Если его там нет, нажмите <b>Select Variable</b> и коснитесь верхнего «Repeat with each item in Dictionary Value».</li>
+          <li>В «Find Photos where Name begins with <b>Repeat Item 2</b>» то же самое: нужен значок стрелок. Без значка сотрите и выберите <b>Repeat Item 2</b>, через Select Variable это второй, нижний «Repeat with each…».</li>
+          <li>В <b>Find Photos</b> должно стоять <b>begins with</b>, а не is. Если при запуске iPhone спросит доступ к фото, разрешите.</li>
+          <li>Действие должно начинаться словами <b>Find Photos where</b>. Если оно читается «<b>Filter</b> … where», оно ищет не во всей медиатеке, а в том, что пришло из действия над ним, и ничего не найдёт. Нажмите плашку сразу после Filter (обычно Repeat Item 2) и выберите <b>Clear</b>. Удалять действие и добавлять заново не помогает: Shortcuts снова подставит Repeat Item 2. Признак этой ошибки: вместо снимка в альбом и в «Фото» попадает белая картинка с именем снимка; её можно удалить.</li>
+          <li>Между вторым «Repeat with each…» и Find Photos не должно быть других действий. Лишнее удалите крестиком справа.</li>
+        </ol>
+        <p>Остальное не трогайте и снова нажмите проверку на одном снимке.</p>
+      </div>
+
+      <h3>Восемь действий по порядку</h3>
+      <ol class="steps">
+        <li><b>Get Clipboard</b> <span class="ru">Получить буфер обмена</span>
+          <p>Поиск: <kbd>clipboard</kbd>. В списке нажмите <b>Get Clipboard</b>. Менять в нём ничего не нужно.</p></li>
+        <li><b>Get Dictionary from Input</b> <span class="ru">Получить словарь из</span>
+          <p>Поиск: <kbd>get dictionary</kbd>. В списке будут два похожих, нажмите <b>Get Dictionary from Input</b>.</p><p>В команде оно читается «Get dictionary from <b>Clipboard</b>». Если вместо Clipboard написано Input или другое, нажмите это синее слово и выберите <b>Clipboard</b>.</p></li>
+        <li><b>Get Dictionary Value</b> <span class="ru">Получить значение словаря</span>, все ключи
+          <p>Поиск: <kbd>get dictionary</kbd>. В списке нажмите <b>Get Dictionary Value</b>, у него оранжевая иконка-книжка. Оно встанет сразу под предыдущим.</p>
+          <p>Нажмите в нём синее слово <b>Value</b> и выберите <b>All Keys</b>. Если последнее синее слово не Dictionary, нажмите его и выберите <b>Dictionary</b>. В команде должно читаться «Get <b>All Keys</b> in <b>Dictionary</b>». Это список названий альбомов.</p>
+          <p class="warn">Не путайте с <b>Get Variable</b> (иконка «x»): оно здесь не подойдёт. Если добавилось оно, удалите его крестиком справа.</p></li>
+        <li><b>Repeat with Each</b> <span class="ru">Повторить с каждым</span>
+          <p>Поиск: <kbd>repeat</kbd>. В списке нажмите <b>Repeat with Each</b>, не просто Repeat.</p><p>В команде появятся две строки: «Repeat with each item in <b>Dictionary Value</b>» и ниже <b>End Repeat</b>. Если синее слово другое, нажмите его и выберите <b>Dictionary Value</b>.</p></li>
+        <li><b>Get Dictionary Value</b>, второй раз
+          <p>Поиск: <kbd>get dictionary</kbd>, снова <b>Get Dictionary Value</b>. Оно встанет под End Repeat: перетащите его выше, между «Repeat with each…» и «End Repeat».</p>
+          <p>Здесь синее слово <b>Value</b> оставьте. Нажмите <b>Key</b> и выберите <b>Repeat Item</b> в строке над клавиатурой; если его там нет, нажмите <b>Select Variable</b> и коснитесь «Repeat with each…» над этим действием. У Repeat Item должен появиться значок серых стрелок: без значка это просто напечатанные буквы, и альбом выйдет пустым. Нажмите последнее синее слово и выберите <b>Dictionary</b> с оранжевой книжкой. В команде должно читаться «Get Value for <b>Repeat Item</b> in <b>Dictionary</b>».</p></li>
+        <li><b>Repeat with Each</b>, второй раз
+          <p>Поиск: <kbd>repeat</kbd>. В списке снова нажмите <b>Repeat with Each</b>. Он встанет в самый низ. Зажмите его верхнюю строку «Repeat with each…» и перетащите сразу под «Get Value for…»: блок переедет вместе со своим End Repeat.</p>
+          <p>Нажмите бледное слово <b>Items</b>, затем <b>Select Variable</b>, и нажмите на действие «Get Value for Repeat Item in Dictionary» прямо над ним. В команде должно читаться «Repeat with each item in <b>Dictionary Value</b>».</p></li>
+        <li><b>Find Photos</b> <span class="ru">Найти фото</span>
+          <p>Поиск: <kbd>find photos</kbd>. В списке нажмите <b>Find Photos</b> и перетащите его внутрь второго повтора: под второй «Repeat with each…», выше его End Repeat. Оно сдвинется вправо дважды. Внутри повтора Shortcuts часто сам подставляет в него Repeat Item 2, и действие читается «<b>Filter</b> Repeat Item 2». Так оно ищет не в медиатеке и ничего не найдёт: нажмите плашку Repeat Item 2 под словом Filter и выберите <b>Clear</b>. Должно стать «Find Photos where». Фильтр Name при этом не удаляйте, Clear убирает только плашку.</p>
+          <p>Нажмите <b>Add Filter</b>. Появится строка вроде «Album is Recents». Нажмите в ней <b>Album</b> и выберите <b>Name</b>. Нажмите слово <b>is</b> и выберите <b>begins with</b>: в «Фото» имя может храниться с расширением, вроде IMG_4520.HEIC, и точное совпадение его не находит. Нажмите поле справа и выберите <b>Repeat Item 2</b>, именно с двойкой и со значком стрелок, не печатайте. В команде должно читаться «Find Photos where Name begins with <b>Repeat Item 2</b>». Sort by и Limit можно не трогать; если Limit включён с Get 1 Item, это тоже работает.</p></li>
+        <li><b>Create Photo Album</b> <span class="ru">Создать фотоальбом</span>
+          <p>Поиск: <kbd>album</kbd>. В списке нажмите <b>Create Photo Album</b>. Оно встанет в самый низ: перетащите его между двумя End Repeat, то есть под End Repeat второго повтора и выше самого последнего End Repeat.</p>
+          <p>Нажмите синее поле с именем альбома и выберите <b>Repeat Item</b>, без двойки и со значком стрелок, не печатайте. Нажмите синее поле с фото и выберите <b>Repeat Results</b>.</p></li>
+      </ol>
+      <p>Нажмите <b>Done</b> справа вверху. Проверьте, что получилось так, отступ с чертой значит «внутри повтора»:</p>
+      <div class="recipe">
+        <div>Get Clipboard</div>
+        <div>Get dictionary from Clipboard</div>
+        <div>Get All Keys in Dictionary</div>
+        <div>Repeat with each item in Dictionary Value</div>
+        <div class="inside">
+          <div>Get Value for Repeat Item in Dictionary</div>
+          <div>Repeat with each item in Dictionary Value</div>
+          <div class="inside">
+            <div>Find Photos where Name begins with Repeat Item 2</div>
+          </div>
+          <div>End Repeat</div>
+          <div>Create photo album Repeat Item with Repeat Results</div>
+        </div>
+        <div>End Repeat</div>
+      </div>
+      <p class="muted">Если какого-то действия или слова Name нет в списке, пришлите в чат снимок экрана, подберу замену.</p>
+      <label class="shortcut-name">Имя команды на iPhone, если назвали иначе
+        <input id="shortcut-name" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="По полочкам">
+      </label>
+      <p>Потом нажмите проверку ниже и разрешите команде доступ к буферу обмена и к «Фото». Если в «Фото» появился альбом «Проверка По полочкам» с одним снимком, всё собрано верно.</p>
+      <button id="test-albums" class="secondary">Проверить первую команду на одном снимке</button>
+      <h3 id="add-shortcut">Вторая команда: докладывать в альбомы, которые уже есть</h3>
+      <p>Нужна, чтобы новые снимки ложились в уже созданные «Сортировка: …», а не во вторые альбомы с тем же названием. Это копия первой команды, в которой поменяно одно действие. Первую команду не трогайте.</p>
+      <ol class="steps">
+        <li>В Shortcuts на вкладке <b>Shortcuts</b> нажмите и подержите плитку «По полочкам», выберите <b>Duplicate</b>. Появится копия «По полочкам 1».</li>
+        <li>Нажмите и подержите копию, выберите <b>Rename</b>, впишите <b>По полочкам добавить</b> и нажмите <b>Done</b>.</li>
+        <li>Откройте копию кнопкой <b>⋯</b> в углу плитки. На саму плитку не нажимайте: команда запустится.</li>
+        <li>Удалите действие «Create photo album Repeat Item with Repeat Results» крестиком справа.</li>
+        <li>В поиске внизу наберите <kbd>save to photo</kbd> и нажмите <b>Save to Photo Album</b>. Оно встанет в самый низ: перетащите его на место удалённого, между двумя End Repeat.</li>
+        <li>В нём нажмите первую синюю плашку, выберите <b>Clear</b>, нажмите пустое поле, затем <b>Select Variable</b> и коснитесь <b>End Repeat</b> прямо над этим действием. Появится <b>Repeat Results</b>.</li>
+        <li>Нажмите <b>Recents</b> и выберите <b>Repeat Item</b> со значком стрелок; если его нет в списке, нажмите <b>Select Variable</b> и коснитесь самого верхнего «Repeat with each». Должно читаться «Save <b>Repeat Results</b> to <b>Repeat Item</b>».</li>
+      </ol>
+      <p>Проверка: после проверки первой команды нажмите кнопку ниже. В альбоме «Проверка По полочкам» должно стать два снимка, а в «Недавних» не должно появиться копий.</p>
+      <button id="test-add" class="secondary">Проверить вторую команду</button>
+
+      <h3 id="remove-shortcut">Третья команда: убирать снимки из альбома, откуда их брали</h3>
+      <p>Нужна, только если включено «Убрать из альбома, откуда брали». Это ещё одна копия, в которой поменяно одно действие.</p>
+      <ol class="steps">
+        <li>Нажмите и подержите плитку «По полочкам добавить», выберите <b>Duplicate</b>, затем у копии <b>Rename</b>: <b>По полочкам убрать</b>.</li>
+        <li>Откройте копию кнопкой <b>⋯</b> и удалите действие «Save Repeat Results to Repeat Item» крестиком справа.</li>
+        <li>В поиске наберите <kbd>remove from album</kbd> и нажмите <b>Remove from Album</b> (иконка «Фото»; не <b>Delete Photos</b>). Перетащите его на место удалённого, между двумя End Repeat.</li>
+        <li>Первую синюю плашку: <b>Clear</b>, затем <b>Select Variable</b> и <b>End Repeat</b> прямо над действием, появится <b>Repeat Results</b>.</li>
+        <li>Нажмите второе синее слово, альбом, и выберите <b>Ask Each Time</b>. Должно читаться «Remove <b>Repeat Results</b> from <b>Ask Each Time</b>». Так при каждом запуске iPhone покажет список альбомов, и название не придётся вписывать.</li>
+      </ol>
+      <p>Проверка: после двух проверок выше нажмите кнопку ниже и в списке выберите «Проверка По полочкам». В альбоме останется один снимок, а убранный должен остаться в Recents.</p>
+      <button id="test-remove" class="secondary">Проверить третью команду</button>
+
+      <p class="muted">Снимки ищутся по имени файла: у снимков с камеры это IMG_4184, у сохранённых из приложений бывают имена вроде camphoto_33463914 или длинный набор букв и цифр. Имя видно в «Фото», если открыть снимок и смахнуть вверх. Отредактированные фото приходят с именем FullSizeRender, их команда не найдёт. Если в галерее несколько снимков с одним именем (после IMG_9999 счёт идёт заново), в альбом попадут все они. Сайт помнит, какие альбомы уже создал, и в них докладывает второй командой. Если удалили альбом в «Фото», выключите у него «уже есть», и он создастся заново. Переименовать сами снимки в «Фото» нельзя: имена вида «2026-07-23 Пятигорск, Белка» есть только у копий в архиве.</p>
+    </details>
+  </details>
+</main>
+
+<div id="toast" class="toast" role="status" hidden>
+  <p id="albums-note"></p>
+  <button id="toast-close" class="toast-close" aria-label="Закрыть">✕</button>
+</div>
+
+<footer id="actions" hidden>
+  <button class="round" data-pick aria-label="Добавить фото">＋</button>
+  <button id="to-albums" class="primary cta">Разложить по альбомам</button>
+</footer>
+
+<input id="files" type="file" accept="image/*" multiple hidden>
+
+<dialog id="photo">
+  <button id="photo-close" class="close" aria-label="Закрыть">✕</button>
+  <div id="photo-body"></div>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

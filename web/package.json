@@ -1,0 +1,14 @@
+{
+  "name": "po-polochkam-web",
+  "private": true,
+  "description": "Веб-версия «По полочкам»: библиотеки, которые сайт раздаёт сам, без внешних CDN",
+  "dependencies": {
+    "@mediapipe/tasks-text": "1.0.1",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/rus": "1.0.0",
+    "exifr": "7.1.3",
+    "onnxruntime-web": "1.30.0",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0"
+  }
+}
