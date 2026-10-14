@@ -36,36 +36,27 @@
     <p>Выберите фото, и приложение разложит их по категориям: внутри от новых к старым, с именем вида «2026-07-23 Пятигорск, Белка». Текст на фото оно прочитает и определит его тему.</p>
     <p class="muted" id="sizes">Загружаю…</p>
     <button id="pick" class="primary cta" data-pick disabled>Выбрать фото</button>
+    <p class="muted">Как выбрать сразу весь альбом, написано внизу, в «Помощи».</p>
     <p class="muted credits">Модели: OpenCLIP (MIT), EmbeddingGemma (Gemma Terms of Use), Tesseract (Apache 2.0). Города: GeoNames, CC BY 4.0.</p>
   </section>
-
-  <details class="card help">
-    <summary>Как выбрать сразу весь альбом</summary>
-    <p>Названия кнопок даны как на iPhone с английским языком.</p>
-    <p><b>Весь альбом сразу.</b></p>
-    <ol>
-      <li>В «Фото» откройте альбом или Recents, нажмите <b>Select</b>, затем <b>Select All</b>.</li>
-      <li>Нажмите кнопку «Поделиться» (квадрат со стрелкой), затем <b>Save to Files</b>, выберите или создайте папку и нажмите <b>Save</b>.</li>
-      <li>Здесь нажмите «Выбрать фото», затем <b>Choose Files</b>, откройте эту папку, нажмите <b>Select</b>, затем <b>Select All</b> и <b>Open</b>.</li>
-    </ol>
-    <p><b>Через окно выбора.</b> Нажмите «Выбрать фото», затем <b>Photo Library</b>, откройте <b>Albums</b> и нужный альбом. Кнопки Select All там нет, но можно провести пальцем по миниатюрам, не отрывая его: отметятся все, по которым он прошёл.</p>
-    <p class="muted">Те же фото второй раз не добавятся, так что альбом можно докладывать частями.</p>
-  </details>
 
   <section id="status" class="card status" hidden>
     <p id="status-text"></p>
     <progress id="status-bar" max="1" hidden></progress>
   </section>
 
-  <div id="summary-row" class="summary-row" hidden>
-    <p id="summary" class="muted"></p>
-    <button id="clear" class="link">Начать заново</button>
-  </div>
-  <section id="groups"></section>
+  <details id="panel-groups" class="panel" open hidden>
+    <summary class="panel-head"><span class="panel-icon" aria-hidden="true">🗂️</span><span class="panel-title">Категории<small id="summary"></small></span></summary>
+    <div id="groups"></div>
+    <div class="panel-actions">
+      <button id="save-all" class="secondary">Скачать всё в «Файлы»</button>
+      <button id="clear" class="link">Начать заново</button>
+    </div>
+  </details>
 
-  <section id="albums" class="card albums" hidden>
-    <h2>Разложить в «Фото»</h2>
-    <p class="muted">По альбому «Сортировка: …» на категорию. В альбомы попадают ваши же снимки из галереи, без копий.</p>
+  <details id="albums" class="panel albums" open hidden>
+    <summary class="panel-head"><span class="panel-icon" aria-hidden="true">📥</span><span class="panel-title">Разложить в «Фото»<small id="albums-meta"></small></span></summary>
+    <p class="muted">По альбому «Сортировка: …» на категорию, из ваших же снимков, без копий. Запуск кнопкой внизу.</p>
     <div id="install" class="install" hidden>
       <a id="install-one" class="primary button" href="#">Установить «Разложить по полочкам»</a>
       <a id="install-main" class="secondary button" href="#">Установить «По полочкам»</a>
@@ -73,16 +64,29 @@
       <a id="install-remove" class="secondary button" href="#">Установить «По полочкам убрать»</a>
       <p class="muted">Откроется Shortcuts: нажмите <b>Add Shortcut</b> и вернитесь сюда за следующей. Не переименовывайте команды: сайт и первая команда зовут остальные по имени. При первом запуске разрешите доступ к буферу обмена и полный доступ к «Фото».</p>
     </div>
-    <div class="album-head" id="album-head"><span>Альбом</span><span>уже есть</span></div>
+    <label id="album-head" class="album-head"><span>Альбом уже есть в «Фото»</span><span class="all">все <input id="all-made" type="checkbox" class="switch" aria-label="Все альбомы уже есть в «Фото»"></span></label>
     <div id="album-list" class="album-list"></div>
     <label class="switch-row"><span><b>Убрать из альбома, откуда брали</b><small>iPhone спросит, из какого. Из «Фото» ничего не удаляется. Не включайте, если брали из Recents.</small></span><input id="remove-source" type="checkbox" class="switch"></label>
-    <button id="to-albums" class="primary cta">Разложить по альбомам</button>
-    <p id="albums-note" class="muted"></p>
+  </details>
 
+  <details id="panel-help" class="panel help-panel">
+    <summary class="panel-head"><span class="panel-icon" aria-hidden="true">🛠️</span><span class="panel-title">Помощь и настройка<small>как выбрать весь альбом, команды iPhone</small></span></summary>
+    <details id="pick-help" class="help">
+      <summary>Как выбрать сразу весь альбом</summary>
+      <p>Названия кнопок даны как на iPhone с английским языком.</p>
+      <p><b>Весь альбом сразу.</b></p>
+      <ol>
+        <li>В «Фото» откройте альбом или Recents, нажмите <b>Select</b>, затем <b>Select All</b>.</li>
+        <li>Нажмите кнопку «Поделиться» (квадрат со стрелкой), затем <b>Save to Files</b>, выберите или создайте папку и нажмите <b>Save</b>.</li>
+        <li>Здесь нажмите «Выбрать фото», затем <b>Choose Files</b>, откройте эту папку, нажмите <b>Select</b>, затем <b>Select All</b> и <b>Open</b>.</li>
+      </ol>
+      <p><b>Через окно выбора.</b> Нажмите «Выбрать фото», затем <b>Photo Library</b>, откройте <b>Albums</b> и нужный альбом. Кнопки Select All там нет, но можно провести пальцем по миниатюрам, не отрывая его: отметятся все, по которым он прошёл.</p>
+      <p class="muted">Те же фото второй раз не добавятся, так что альбом можно докладывать частями.</p>
+    </details>
     <details id="one-setup" class="help one-setup">
       <summary id="one-summary">Одна кнопка вместо трёх</summary>
       <div id="one-intro">
-        <p>Сейчас кнопка выше запускает три команды по очереди, и после каждой нужно возвращаться сюда. Соберите четвёртую, короткую команду <b>Разложить по полочкам</b>: она сама вызовет ваши три, и всё сделается за одно нажатие. Три готовые команды не трогайте и не переименовывайте.</p>
+        <p>Сейчас кнопка «Разложить по альбомам» запускает три команды по очереди, и после каждой нужно возвращаться сюда. Соберите четвёртую, короткую команду <b>Разложить по полочкам</b>: она сама вызовет ваши три, и всё сделается за одно нажатие. Три готовые команды не трогайте и не переименовывайте.</p>
       </div>
       <ol class="steps">
         <li>В Shortcuts на вкладке <b>Shortcuts</b> нажмите «+» справа вверху. Нажмите <b>New Shortcut</b> вверху, затем <b>Rename</b>, введите <b>Разложить по полочкам</b> и <b>Done</b>.</li>
@@ -115,7 +119,6 @@
       <button id="use-one" class="primary">В альбоме два снимка: включить одну кнопку</button>
       <button id="use-three" class="link" hidden>Вернуться к трём командам по очереди</button>
     </details>
-
     <details id="shortcut-help" class="help">
       <summary>Первые три команды: как собрать и проверить</summary>
       <p>Названия даны как на iPhone с английским языком. Займёт минут десять, потом команда просто запускается этой кнопкой.</p>
@@ -228,12 +231,17 @@
 
       <p class="muted">Снимки ищутся по имени файла: у снимков с камеры это IMG_4184, у сохранённых из приложений бывают имена вроде camphoto_33463914 или длинный набор букв и цифр. Имя видно в «Фото», если открыть снимок и смахнуть вверх. Отредактированные фото приходят с именем FullSizeRender, их команда не найдёт. Если в галерее несколько снимков с одним именем (после IMG_9999 счёт идёт заново), в альбом попадут все они. Сайт помнит, какие альбомы уже создал, и в них докладывает второй командой. Если удалили альбом в «Фото», выключите у него «уже есть», и он создастся заново. Переименовать сами снимки в «Фото» нельзя: имена вида «2026-07-23 Пятигорск, Белка» есть только у копий в архиве.</p>
     </details>
-  </section>
+  </details>
 </main>
 
+<div id="toast" class="toast" role="status" hidden>
+  <p id="albums-note"></p>
+  <button id="toast-close" class="toast-close" aria-label="Закрыть">✕</button>
+</div>
+
 <footer id="actions" hidden>
-  <button class="secondary" data-pick>Добавить фото</button>
-  <button id="save-all" class="primary">Сохранить в «Файлы»</button>
+  <button class="round" data-pick aria-label="Добавить фото">＋</button>
+  <button id="to-albums" class="primary cta">Разложить по альбомам</button>
 </footer>
 
 <input id="files" type="file" accept="image/*" multiple hidden>

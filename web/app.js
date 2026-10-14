@@ -150,6 +150,17 @@ function categoryOf(photo) {
   return photo.userCategory || photo.category;
 }
 
+// Значок у полки и у альбома, чтобы категорию было видно с одного взгляда
+const ICONS = {
+  nature: '🌿', sea: '🏖️', plants: '🌸', city: '🏙️', landmarks: '🏛️', art: '🎨', people: '👥', selfie: '🤳',
+  animals: '🐾', food: '🍜', documents: '📄', study: '📚', notes: '✍️', screenshots: '📱', receipts: '🧾',
+  shopping: '🛍️', tech: '💻', drawings: '📐', transport: '🚗', home: '🛋️', sport: '⚽', party: '🎉', memes: '😂',
+};
+
+function categoryIcon(id) {
+  return ICONS[id] || '🗂️';
+}
+
 function categoryName(id) {
   return state.taxonomy.categories.find((c) => c.id === id)?.name || id;
 }
@@ -653,16 +664,18 @@ function libraryName(photo) {
 
 function albumPlan() {
   const plan = {};
+  const icons = {};
   let photos = 0, skipped = 0;
   for (const group of groups()) {
     const names = [...new Set(group.photos.map(libraryName).filter(Boolean))];
     skipped += group.photos.length - group.photos.filter(libraryName).length;
     if (!names.length) continue;
     plan[`Сортировка: ${categoryName(group.id)}`] = names;
+    icons[`Сортировка: ${categoryName(group.id)}`] = categoryIcon(group.id);
     photos += names.length;
   }
   const examples = Object.values(plan).flat().slice(0, 3);
-  return { plan, albums: Object.keys(plan).length, photos, skipped, examples };
+  return { plan, icons, albums: Object.keys(plan).length, photos, skipped, examples };
 }
 
 // Вторая команда: та же, но не создаёт альбом, а докладывает снимки в уже существующий.
@@ -734,7 +747,7 @@ function setupMode() {
   $('#use-one').addEventListener('click', () => {
     setOneMode(true);
     $('#one-setup').open = false;
-    $('#albums-note').textContent = 'Готово: теперь кнопка «Разложить по альбомам» делает всё за один запуск.';
+    showNote('Готово: теперь кнопка «Разложить по альбомам» делает всё за один запуск.');
   });
   $('#use-three').addEventListener('click', () => setOneMode(false));
   applyMode();
@@ -808,19 +821,27 @@ function resetSteps() {
   renderAlbums();
 }
 
+// Подсказка над нижней кнопкой: её видно и после возвращения из Shortcuts, пока не закроют
+function showNote(text) {
+  setText($('#albums-note'), text);
+  $('#toast').hidden = !text;
+}
+
 // Кладёт раскладку в буфер обмена и запускает команду. help: какие шаги раскрыть к возвращению
 async function runShortcut(plan, name, message, help = null) {
-  const note = $('#albums-note');
   try {
     await navigator.clipboard.writeText(JSON.stringify(plan));
   } catch {
-    note.textContent = 'Safari не дал скопировать список. Нажмите кнопку ещё раз.';
+    showNote('Safari не дал скопировать список. Нажмите кнопку ещё раз.');
     return false;
   }
-  note.textContent = `${message} Открываю команду «${name}». Если Shortcuts пишут, что её нет (Could not find the shortcut),`
-    + ' сначала соберите её по шагам ниже.';
+  showNote(`${message} Открываю команду «${name}». Если Shortcuts пишут, что её нет (Could not find the shortcut),`
+    + ' сначала соберите её по шагам в «Помощи и настройке».');
   // Шаги остаются открытыми, когда вы вернётесь из Shortcuts
-  if (help) help.open = true;
+  if (help) {
+    help.open = true;
+    help.closest('.panel').open = true;
+  }
   location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}`;
   return true;
 }
@@ -836,7 +857,7 @@ function sizeOf(plan) {
 async function toAlbums() {
   const { plan, albums, skipped, examples } = albumPlan();
   if (!albums) {
-    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    showNote('Ни один снимок не найти по имени файла.');
     return;
   }
   if (oneMode()) {
@@ -898,7 +919,7 @@ async function toAlbumsOnce(plan, skipped) {
 async function testOne() {
   const { examples } = albumPlan();
   if (!examples.length) {
-    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    showNote('Ни один снимок не найти по имени файла.');
     return;
   }
   const [first, second = first] = examples;
@@ -921,7 +942,7 @@ const TEST_ALBUM = 'Проверка По полочкам';
 async function testShortcut() {
   const { examples } = albumPlan();
   if (!examples.length) {
-    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    showNote('Ни один снимок не найти по имени файла.');
     return;
   }
   const photo = examples[0];
@@ -937,7 +958,7 @@ async function testShortcut() {
 async function testAddShortcut() {
   const { examples } = albumPlan();
   if (!examples.length) {
-    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    showNote('Ни один снимок не найти по имени файла.');
     return;
   }
   const [first, second = first] = examples;
@@ -953,7 +974,7 @@ async function testAddShortcut() {
 async function testRemoveShortcut() {
   const { examples } = albumPlan();
   if (!examples.length) {
-    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    showNote('Ни один снимок не найти по имени файла.');
     return;
   }
   const [first] = examples;
@@ -964,13 +985,51 @@ async function testRemoveShortcut() {
     $('#shortcut-help'));
 }
 
+// Один переключатель на все альбомы сразу
+function setupAllMade() {
+  $('#all-made').addEventListener('change', (event) => {
+    const { plan } = albumPlan();
+    const made = madeAlbums();
+    for (const album of Object.keys(plan)) {
+      if (event.target.checked) made.add(album);
+      else made.delete(album);
+    }
+    saveMadeAlbums(made);
+    resetSteps();
+  });
+}
+
+// Свёрнутые и раскрытые разделы запоминаются
+const PANELS_KEY = 'panels';
+
+function setupPanels() {
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem(PANELS_KEY)) || {};
+  } catch { /* без хранилища разделы открываются как по умолчанию */ }
+  for (const panel of document.querySelectorAll('details.panel')) {
+    if (panel.id in saved) panel.open = saved[panel.id];
+    panel.addEventListener('toggle', () => {
+      saved[panel.id] = panel.open;
+      try {
+        localStorage.setItem(PANELS_KEY, JSON.stringify(saved));
+      } catch { /* не запомнилось: в следующий раз раздел откроется как по умолчанию */ }
+    });
+  }
+}
+
 // Галочки «альбом уже есть»: по ним кнопка решает, создать альбом или доложить в него
 let albumsKey = '';
 
 function renderAlbums() {
-  const { plan } = albumPlan();
+  const { plan, icons } = albumPlan();
   const made = madeAlbums();
   const albums = Object.keys(plan);
+  const all = $('#all-made');
+  const done = albums.filter((album) => made.has(album)).length;
+  all.checked = albums.length > 0 && done === albums.length;
+  all.indeterminate = done > 0 && done < albums.length;
+  setText($('#albums-meta'), albums.length ? `альбомов: ${albums.length}` : '');
   const key = JSON.stringify(albums.map((a) => [a, plan[a].length, made.has(a)]));
   setText($('#to-albums'), stepButton(pending[0]));
   if (key === albumsKey) return;
@@ -986,7 +1045,7 @@ function renderAlbums() {
       resetSteps();
     });
     return el('label', { className: 'album-row' }, [
-      el('span', { className: 'album-name' }, album.replace(/^Сортировка: /, '')),
+      el('span', { className: 'album-name' }, `${icons[album]} ${album.replace(/^Сортировка: /, '')}`),
       el('span', { className: 'count' }, String(plan[album].length)),
       box,
     ]);
@@ -1059,6 +1118,7 @@ function groupView(id) {
   // У каждой полки свой цвет, постоянный для категории
   details.style.setProperty('--hue', String([...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)));
   const name = el('span', { class: 'group-name' });
+  const icon = el('span', { class: 'group-icon', ariaHidden: 'true' }, categoryIcon(id));
   const count = el('span', { class: 'group-count' });
   const strip = el('span', { class: 'strip' });
   const grid = el('div', { class: 'grid' });
@@ -1069,7 +1129,7 @@ function groupView(id) {
       if (group) saveZip([group], `${safe(categoryName(id))}.zip`);
     },
   });
-  details.append(el('summary', {}, [name, count, strip]), grid, save);
+  details.append(el('summary', {}, [icon, name, count, strip]), grid, save);
   details.addEventListener('toggle', () => {
     if (details.open === state.open.has(id)) return;
     if (details.open) state.open.add(id); else state.open.delete(id);
@@ -1085,10 +1145,11 @@ function render() {
   const failed = state.photos.filter((p) => p.stage === 'failed').length;
   $('#intro').hidden = state.photos.length > 0;
   $('#actions').hidden = state.photos.length === 0;
-  $('#summary-row').hidden = state.photos.length === 0;
+  $('#panel-groups').hidden = state.photos.length === 0;
   $('#save-all').disabled = state.busy || list.length === 0;
+  $('#to-albums').disabled = state.busy || list.length === 0;
   $('#albums').hidden = list.length === 0;
-  for (const button of document.querySelectorAll('#to-albums, #test-one, #test-albums, #test-add, #test-remove')) {
+  for (const button of document.querySelectorAll('#test-one, #test-albums, #test-add, #test-remove')) {
     button.disabled = state.busy;
   }
   $('#stages').dataset.stage = !state.photos.length ? '1' : state.busy ? '2' : '3';
@@ -1139,7 +1200,7 @@ function render() {
       g.gridKey = '';
     }
     g.save.disabled = state.busy;
-    setText(g.save, `Сохранить «${title}» в «Файлы»`);
+    setText(g.save, `Скачать «${title}» в «Файлы»`);
 
     if (container.children[index] !== g.details) container.insertBefore(g.details, container.children[index] || null);
   });
@@ -1233,7 +1294,10 @@ $('#test-albums').addEventListener('click', testShortcut);
 $('#test-add').addEventListener('click', testAddShortcut);
 $('#test-remove').addEventListener('click', testRemoveShortcut);
 $('#test-one').addEventListener('click', testOne);
+$('#toast-close').addEventListener('click', () => showNote(''));
 setupMode();
+setupAllMade();
+setupPanels();
 setupRemoveSource();
 setupShortcutName();
 setupInstall();
