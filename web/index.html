@@ -80,14 +80,14 @@
         <li><b>Repeat with Each</b> <span class="ru">Повторить с каждым</span>
           <p>Поиск: <kbd>repeat</kbd>. В списке нажмите <b>Repeat with Each</b>, не просто Repeat.</p><p>В команде появятся две строки: «Repeat with each item in <b>Dictionary</b>» и ниже <b>End Repeat</b>. Если синее слово не Dictionary, нажмите его и выберите <b>Dictionary</b>.</p></li>
         <li><b>Get Dictionary Value</b> <span class="ru">Получить значение словаря</span>
-          <p>Поиск: <kbd>get dictionary</kbd>. В списке нажмите <b>Get Dictionary Value</b>. Оно встанет под End Repeat: перетащите его выше, между «Repeat with each…» и «End Repeat».</p>
+          <p>Поиск: <kbd>get dictionary</kbd>. В списке нажмите <b>Get Dictionary Value</b>, у него оранжевая иконка-книжка, как у шага 2. Оно встанет под End Repeat: перетащите его выше, между «Repeat with each…» и «End Repeat».</p><p class="warn">Не путайте с <b>Get Variable</b> (иконка «x», в команде читается «Get Variable»): оно здесь не подойдёт. Если добавилось оно, удалите его крестиком справа и добавьте Get Dictionary Value.</p>
           <p>Теперь синие слова. Нажмите <b>Key</b> и выберите <b>Repeat Item</b>. Нажмите последнее синее слово и выберите <b>Dictionary</b>. В команде должно читаться «Get Value for <b>Repeat Item</b> in <b>Dictionary</b>».</p></li>
         <li><b>Repeat with Each</b>, второй раз
           <p>Поиск: <kbd>repeat</kbd>. В списке снова нажмите <b>Repeat with Each</b>. Он встанет в самый низ. Зажмите его верхнюю строку «Repeat with each…» и перетащите сразу под Get Dictionary Value: блок переедет вместе со своим End Repeat.</p>
-          <p>Нажмите синее слово в нём и выберите <b>Dictionary Value</b>. В команде должно читаться «Repeat with each item in <b>Dictionary Value</b>».</p></li>
+          <p>Сначала там бледное слово <b>Items</b>: нажмите его и выберите <b>Dictionary Value</b>. В команде должно читаться «Repeat with each item in <b>Dictionary Value</b>». Если оставить Items, команда не найдёт ни одного фото.</p></li>
         <li><b>Find Photos</b> <span class="ru">Найти фото</span>
           <p>Поиск: <kbd>find photos</kbd>. В списке нажмите <b>Find Photos</b> и перетащите его внутрь второго повтора: под второй «Repeat with each…», выше его End Repeat. Оно сдвинется вправо дважды.</p>
-          <p>Нажмите <b>Add Filter</b>. Появится строка вроде «Album is Recents». Нажмите в ней <b>Album</b> и выберите <b>Name</b>. Слово <b>is</b> оставьте. Нажмите поле справа от is и выберите <b>Repeat Item 2</b>, именно с двойкой. В команде должно читаться «Find All Photos where Name is <b>Repeat Item 2</b>». Sort и Limit не трогайте.</p></li>
+          <p>Нажмите <b>Add Filter</b>. Появится строка вроде «Album is Recents». Нажмите в ней <b>Album</b> и выберите <b>Name</b>. Слово <b>is</b> оставьте. Нажмите поле справа от is и выберите <b>Repeat Item 2</b>, именно с двойкой. В команде должно читаться «Find Photos where Name is <b>Repeat Item 2</b>». Sort by и Limit можно не трогать; если Limit включён с Get 1 Item, это тоже работает.</p></li>
         <li><b>Create Photo Album</b> <span class="ru">Создать фотоальбом</span>
           <p>Поиск: <kbd>album</kbd>. В списке нажмите <b>Create Photo Album</b>. Оно встанет в самый низ: перетащите его между двумя End Repeat, то есть под End Repeat второго повтора и выше самого последнего End Repeat.</p>
           <p>Нажмите синее поле с именем альбома и выберите <b>Repeat Item</b>, без двойки. Нажмите синее поле с фото и выберите <b>Repeat Results</b>.</p></li>
@@ -101,7 +101,7 @@
           <div>Get Value for Repeat Item in Dictionary</div>
           <div>Repeat with each item in Dictionary Value</div>
           <div class="inside">
-            <div>Find All Photos where Name is Repeat Item 2</div>
+            <div>Find Photos where Name is Repeat Item 2</div>
           </div>
           <div>End Repeat</div>
           <div>Create photo album Repeat Item with Repeat Results</div>
