@@ -643,13 +643,9 @@ function albumPlan() {
   return { plan, albums: Object.keys(plan).length, photos, skipped, examples };
 }
 
-async function toAlbums() {
-  const { plan, albums, photos, skipped, examples } = albumPlan();
+// Кладёт раскладку в буфер обмена и запускает команду
+async function runShortcut(plan, message) {
   const note = $('#albums-note');
-  if (!albums) {
-    note.textContent = 'Ни один снимок не найти по имени файла.';
-    return;
-  }
   try {
     await navigator.clipboard.writeText(JSON.stringify(plan));
   } catch {
@@ -657,13 +653,38 @@ async function toAlbums() {
     return;
   }
   const name = shortcutName();
-  note.textContent = `Скопировал раскладку: альбомов ${albums}, фото ${photos}, ищу по именам вроде ${examples.join(', ')}.`
-    + (skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : '')
-    + ` Открываю команду «${name}». Если Shortcuts пишут, что её нет (Could not find the shortcut),`
+  note.textContent = `${message} Открываю команду «${name}». Если Shortcuts пишут, что её нет (Could not find the shortcut),`
     + ' сначала соберите её по шагам ниже или впишите там её точное имя.';
   // Шаги остаются открытыми, когда вы вернётесь из Shortcuts
   $('#shortcut-help').open = true;
   location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}`;
+}
+
+async function toAlbums() {
+  const { plan, albums, photos, skipped, examples } = albumPlan();
+  if (!albums) {
+    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    return;
+  }
+  await runShortcut(plan, `Скопировал раскладку: альбомов ${albums}, фото ${photos}, ищу по именам вроде ${examples.join(', ')}.`
+    + (skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : ''));
+}
+
+const TEST_ALBUM = 'Проверка По полочкам';
+
+// Один альбом с одним снимком: по нему видно, правильно ли собрана команда
+async function testShortcut() {
+  const { examples } = albumPlan();
+  if (!examples.length) {
+    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    return;
+  }
+  const photo = examples[0];
+  await runShortcut({ [TEST_ALBUM]: [photo] },
+    `Проверка: в «Фото» должен появиться альбом «${TEST_ALBUM}» с одним снимком ${photo}.`
+    + ' Если альбом назван длинной строкой со скобками, в Create Photo Album вместо Repeat Item выбрано другое.'
+    + ' Если альбом пустой, в Find Photos после «Name is» не выбран Repeat Item 2.'
+    + ' Проверочный альбом потом удалите.');
 }
 
 // ---------- Экран ----------
@@ -760,6 +781,7 @@ function render() {
   $('#save-all').disabled = state.busy || list.length === 0;
   $('#albums').hidden = list.length === 0;
   $('#to-albums').disabled = state.busy;
+  $('#test-albums').disabled = state.busy;
   setText($('#summary'), state.photos.length
     ? `${state.photos.length} фото, категорий: ${list.length}` + (failed ? `. Не удалось открыть: ${failed}` : '')
     : '');
@@ -896,6 +918,7 @@ for (const button of document.querySelectorAll('[data-pick]')) {
 $('#save-all').addEventListener('click', () => saveZip(groups(), `По полочкам ${isoDate(new Date())}.zip`));
 $('#clear').addEventListener('click', clearAll);
 $('#to-albums').addEventListener('click', toAlbums);
+$('#test-albums').addEventListener('click', testShortcut);
 setupShortcutName();
 $('#photo-close').addEventListener('click', () => $('#photo').close());
 document.addEventListener('visibilitychange', () => { if (state.busy) keepAwake(true); });
