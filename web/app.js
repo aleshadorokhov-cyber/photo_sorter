@@ -598,6 +598,24 @@ async function saveZip(list, zipName) {
 const SHORTCUT_NAME = 'По полочкам';
 const NAME_KEY = 'shortcut-name';
 
+// Ссылки iCloud на готовые команды («Поделиться» → «Скопировать ссылку iCloud»).
+// Пока ссылки пустые, на странице остаются только шаги ручной сборки
+const SHORTCUT_LINKS = {
+  main: '',
+  add: '',
+};
+
+function setupInstall() {
+  const links = [[$('#install-main'), SHORTCUT_LINKS.main], [$('#install-add'), SHORTCUT_LINKS.add]];
+  for (const [link, url] of links) {
+    link.hidden = !url;
+    if (url) link.href = url;
+  }
+  if (!SHORTCUT_LINKS.main && !SHORTCUT_LINKS.add) return;
+  $('#install').hidden = false;
+  $('#shortcut-help summary').textContent = 'Если установка не сработала: собрать команды вручную';
+}
+
 // Имя команды можно поменять на странице, если на iPhone её назвали иначе
 function shortcutName() {
   return $('#shortcut-name').value.trim() || SHORTCUT_NAME;
@@ -1026,6 +1044,7 @@ $('#to-albums').addEventListener('click', toAlbums);
 $('#test-albums').addEventListener('click', testShortcut);
 $('#test-add').addEventListener('click', testAddShortcut);
 setupShortcutName();
+setupInstall();
 $('#photo-close').addEventListener('click', () => $('#photo').close());
 document.addEventListener('visibilitychange', () => { if (state.busy) keepAwake(true); });
 // Без этого Safari на iPhone не подсвечивает нажатую кнопку
