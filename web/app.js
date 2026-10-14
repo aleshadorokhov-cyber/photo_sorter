@@ -1,7 +1,10 @@
 // По полочкам, веб-версия. Всё считается в браузере: фото никуда не отправляются.
 import * as exifr from './vendor/exifr/lite.esm.mjs';
 import Tesseract from './vendor/tesseract/tesseract.esm.min.js';
-import { Zip, ZipPassThrough } from './vendor/fflate/browser.js';
+import { clipPixels, decode, ocrImage, thumbnail } from './images.js';
+import { pruneModelCache } from './models.js';
+import * as store from './store.js';
+import { crc32, zipBlob } from './zip.js';
 
 const BASE = new URL('./', import.meta.url);
 const MODELS = new URL('./models/', BASE);
@@ -81,81 +84,6 @@ function megabytes(bytes) {
   return Math.round(bytes / 1e6);
 }
 
-// ---------- Картинки ----------
-
-async function decode(file) {
-  try {
-    return await createImageBitmap(file, { imageOrientation: 'from-image' });
-  } catch {
-    // Запасной путь через <img> для форматов, которые createImageBitmap не берёт
-    const url = URL.createObjectURL(file);
-    try {
-      const img = new Image();
-      img.src = url;
-      await img.decode();
-      return await createImageBitmap(img);
-    } finally {
-      URL.revokeObjectURL(url);
-    }
-  }
-}
-
-function canvas(width, height) {
-  const c = document.createElement('canvas');
-  c.width = Math.max(1, Math.round(width));
-  c.height = Math.max(1, Math.round(height));
-  return c;
-}
-
-// Уменьшает в несколько шагов, чтобы мелкие детали не превращались в шум
-function scaled(source, sx, sy, sw, sh, width, height) {
-  let current = source;
-  let cx = sx, cy = sy, cw = sw, ch = sh;
-  while (cw / 2 >= width * 1.5 && ch / 2 >= height * 1.5) {
-    const step = canvas(cw / 2, ch / 2);
-    const ctx = step.getContext('2d');
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(current, cx, cy, cw, ch, 0, 0, step.width, step.height);
-    current = step; cx = 0; cy = 0; cw = step.width; ch = step.height;
-  }
-  const out = canvas(width, height);
-  const ctx = out.getContext('2d');
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(current, cx, cy, cw, ch, 0, 0, out.width, out.height);
-  return out;
-}
-
-// Как в CLIP: квадрат по центру короткой стороны, 224x224, значения 0..1 по каналам
-function clipPixels(bitmap) {
-  const side = Math.min(bitmap.width, bitmap.height);
-  const c = scaled(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 224, 224);
-  const { data } = c.getContext('2d').getImageData(0, 0, 224, 224);
-  const plane = 224 * 224;
-  const pixels = new Float32Array(3 * plane);
-  for (let i = 0; i < plane; i++) {
-    pixels[i] = data[i * 4] / 255;
-    pixels[plane + i] = data[i * 4 + 1] / 255;
-    pixels[2 * plane + i] = data[i * 4 + 2] / 255;
-  }
-  return pixels;
-}
-
-function fit(bitmap, maxSide) {
-  const s = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-  return scaled(bitmap, 0, 0, bitmap.width, bitmap.height, bitmap.width * s, bitmap.height * s);
-}
-
-function thumbnail(bitmap) {
-  return new Promise((resolve) => fit(bitmap, 360).toBlob((blob) => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.8));
-}
-
-// Для чтения текста: не больше 2000 точек, мелкие снимки увеличиваются вдвое
-function ocrCanvas(bitmap) {
-  const longest = Math.max(bitmap.width, bitmap.height);
-  if (longest < 1200) return scaled(bitmap, 0, 0, bitmap.width, bitmap.height, bitmap.width * 2, bitmap.height * 2);
-  return fit(bitmap, 2000);
-}
-
 // ---------- Дата, место, скриншот ----------
 
 function commentText(value) {
@@ -164,14 +92,14 @@ function commentText(value) {
   try { return new TextDecoder().decode(value); } catch { return ''; }
 }
 
-async function readMeta(file) {
+async function readMeta(file, type) {
   let tags = {};
   try {
     tags = (await exifr.parse(file, { tiff: true, exif: true, gps: true, xmp: false, icc: false, iptc: false, jfif: false, ihdr: false })) || {};
   } catch { /* у файла нет EXIF */ }
   const date = tags.DateTimeOriginal || tags.CreateDate || null;
   const comment = commentText(tags.UserComment);
-  const isScreenshot = /screenshot/i.test(comment) || (file.type === 'image/png' && !tags.Make);
+  const isScreenshot = /screenshot/i.test(comment) || (type === 'image/png' && !tags.Make);
   const hasGps = Number.isFinite(tags.latitude) && Number.isFinite(tags.longitude) && !(tags.latitude === 0 && tags.longitude === 0);
   return {
     date: date instanceof Date && !isNaN(date) ? date : null,
@@ -226,45 +154,52 @@ function categoryName(id) {
   return state.taxonomy.categories.find((c) => c.id === id)?.name || id;
 }
 
-// ---------- Модели ----------
+// ---------- Фоновые потоки ----------
 
-class ImageModel {
-  constructor() {
-    this.worker = new Worker(new URL('./clip-worker.js', BASE), { type: 'module' });
+// Обёртка над Worker: запрос — обещание с ответом. Закрытый поток отдаёт всю свою память.
+class TaskWorker {
+  constructor(script) {
+    this.worker = new Worker(new URL(script, BASE), { type: 'module' });
     this.pending = new Map();
-    this.worker.onmessage = ({ data }) => {
-      if (data.type === 'progress') this.onProgress?.(data.loaded, data.total);
-      else if (data.type === 'loaded') this.loaded?.resolve();
-      else if (data.type === 'error' && data.id == null) this.loaded?.reject(new Error(data.message));
-      else {
-        const task = this.pending.get(data.id);
-        this.pending.delete(data.id);
-        if (data.type === 'error') task?.reject(new Error(data.message));
-        else task?.resolve(data.vector);
-      }
-    };
     this.counter = 0;
+    this.worker.onmessage = ({ data }) => {
+      if (data.type === 'progress') {
+        this.onProgress?.(data.loaded, data.total);
+        return;
+      }
+      const task = this.pending.get(data.id);
+      this.pending.delete(data.id);
+      if (data.type === 'error') task?.reject(Object.assign(new Error(data.message), { decode: data.decode }));
+      else task?.resolve(data);
+    };
+    this.worker.onerror = (event) => {
+      event.preventDefault?.();
+      this.failAll(new Error(event.message || 'Фоновый поток не запустился'));
+    };
   }
 
-  load(onProgress) {
-    this.onProgress = onProgress;
-    return new Promise((resolve, reject) => {
-      this.loaded = { resolve, reject };
-      const { parts, size } = state.manifest.image;
-      this.worker.postMessage({ type: 'load', urls: parts.map((p) => new URL(p, MODELS).href), size });
-    });
-  }
-
-  embed(pixels) {
+  request(message, transfer = []) {
     const id = ++this.counter;
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ type: 'embed', id, pixels }, [pixels.buffer]);
+      this.worker.postMessage({ ...message, id }, transfer);
     });
+  }
+
+  load(model, onProgress) {
+    this.onProgress = onProgress;
+    const { parts, size } = state.manifest[model];
+    return this.request({ type: 'load', urls: parts.map((p) => new URL(p, MODELS).href), size });
+  }
+
+  failAll(error) {
+    for (const task of this.pending.values()) task.reject(error);
+    this.pending.clear();
   }
 
   close() {
     this.worker.terminate();
+    this.failAll(new Error('Поток закрыт'));
   }
 }
 
@@ -278,30 +213,45 @@ async function createTextReader() {
   });
 }
 
-// EmbeddingGemma лежит частями (на GitHub Pages один файл не больше 100 МБ), склеиваем потоком
-async function createTopicModel(onProgress) {
-  const { FilesetResolver, TextEmbedder } = await import('./vendor/mediapipe/text_bundle.mjs');
-  const fileset = await FilesetResolver.forTextTasks(new URL('vendor/mediapipe', BASE).href);
-  const parts = state.manifest.topic.parts.map((p) => new URL(p, MODELS));
-  const total = state.manifest.topic.size;
-  let index = 0, loaded = 0, reader = null;
-  const stream = new ReadableStream({
-    async pull(controller) {
-      for (;;) {
-        if (!reader) {
-          if (index >= parts.length) { controller.close(); return; }
-          reader = (await fetchOk(parts[index++])).body.getReader();
-        }
-        const { done, value } = await reader.read();
-        if (done) { reader = null; continue; }
-        loaded += value.length;
-        onProgress(loaded, total);
-        controller.enqueue(value);
-        return;
-      }
-    },
-  });
-  return TextEmbedder.createFromOptions(fileset, { baseOptions: { modelAssetBuffer: stream.getReader() } });
+// ---------- Хранение на телефоне ----------
+
+const SAVED_FIELDS = [
+  'id', 'key', 'name', 'type', 'size', 'stage', 'error', 'thumbBlob',
+  'date', 'latitude', 'longitude', 'place', 'isScreenshot',
+  'category', 'userCategory', 'confidence', 'probabilities', 'label', 'labelConfidence',
+  'lines', 'textSkipped', 'forceText', 'topic', 'topicError', 'crc',
+];
+
+function isListed(photo) {
+  return state.photos.includes(photo);
+}
+
+function persist(photo) {
+  if (!isListed(photo)) return Promise.resolve();
+  const record = {};
+  for (const key of SAVED_FIELDS) if (photo[key] !== undefined) record[key] = photo[key];
+  return store.savePhoto(record);
+}
+
+function setThumb(photo, blob) {
+  if (photo.thumb) URL.revokeObjectURL(photo.thumb);
+  photo.thumbBlob = blob;
+  photo.thumb = blob ? URL.createObjectURL(blob) : null;
+}
+
+async function restore() {
+  const { records, files } = await store.loadAll();
+  for (const record of records.sort((a, b) => a.id - b.id)) {
+    const file = files.get(record.id);
+    if (!file) {
+      store.deletePhoto(record.id);
+      continue;
+    }
+    const photo = { lines: [], ...record, file };
+    if (photo.thumbBlob) photo.thumb = URL.createObjectURL(photo.thumbBlob);
+    state.photos.push(photo);
+  }
+  state.nextId = state.photos.reduce((max, p) => Math.max(max, p.id), 0) + 1;
 }
 
 // ---------- Разбор ----------
@@ -342,65 +292,102 @@ function needsText(photo) {
   return texty >= 0.15;
 }
 
+const WAIT_HINT = 'Не уходите со страницы: в фоне iPhone ставит разбор на паузу. Если страница перезагрузится, разбор продолжится.';
+
+// Даёт странице ответить на нажатия между тяжёлыми шагами
+const breathe = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+// Снимок открывает фоновый поток, а если не смог, то сама страница
+async function analyzePhoto(worker, photo) {
+  Object.assign(photo, await readMeta(photo.file, photo.type));
+  let result;
+  try {
+    result = await worker.request({ type: 'analyze', file: photo.file });
+  } catch (error) {
+    if (!error.decode) throw error;
+    const bitmap = await decode(photo.file);
+    try {
+      const thumb = await thumbnail(bitmap);
+      const pixels = clipPixels(bitmap);
+      result = { ...(await worker.request({ type: 'embed', pixels }, [pixels.buffer])), thumb };
+    } finally {
+      bitmap.close?.();
+    }
+  }
+  setThumb(photo, result.thumb);
+  const vector = normalize(result.vector);
+  photo.probabilities = probabilities(state.categories, vector);
+  const c = argmax(photo.probabilities);
+  photo.category = photo.isScreenshot ? 'screenshots' : state.taxonomy.categories[c].id;
+  photo.confidence = photo.isScreenshot ? 1 : photo.probabilities[c];
+  const labels = probabilities(state.labels, vector);
+  const l = argmax(labels);
+  photo.label = state.taxonomy.labels[l].ru;
+  photo.labelConfidence = labels[l];
+  photo.place = null;
+  if (photo.latitude != null) {
+    try { photo.place = await placeName(photo.latitude, photo.longitude); } catch { photo.place = null; }
+  }
+}
+
 async function analyzeImages() {
   const todo = state.photos.filter((p) => p.stage === 'new');
   if (!todo.length) return;
-  const model = new ImageModel();
+  const worker = new TaskWorker('./image-worker.js');
   try {
-    await model.load((loaded, total) => setStatus(
-      `Загружаю модель для фото: ${megabytes(loaded)} из ${megabytes(total || state.manifest.image.size)} МБ. Это нужно один раз.`,
-      total ? loaded / total : null));
+    await worker.load('image', (loaded, total) => setStatus(
+      `Загружаю модель для фото: ${megabytes(loaded)} из ${megabytes(total)} МБ. Это нужно один раз.`, loaded / total));
     let done = 0;
     for (const photo of todo) {
-      setStatus(`Смотрю, что на фото: ${done + 1} из ${todo.length}`, done / todo.length);
+      if (!isListed(photo)) continue;
+      setStatus(`Смотрю, что на фото: ${done + 1} из ${todo.length}. ${WAIT_HINT}`, done / todo.length);
       try {
-        const meta = await readMeta(photo.file);
-        Object.assign(photo, meta);
-        const bitmap = await decode(photo.file);
-        photo.thumb = await thumbnail(bitmap);
-        const pixels = clipPixels(bitmap);
-        bitmap.close?.();
-        const vector = normalize(await model.embed(pixels));
-        photo.probabilities = probabilities(state.categories, vector);
-        const c = argmax(photo.probabilities);
-        photo.category = photo.isScreenshot ? 'screenshots' : state.taxonomy.categories[c].id;
-        photo.confidence = photo.isScreenshot ? 1 : photo.probabilities[c];
-        const labels = probabilities(state.labels, vector);
-        const l = argmax(labels);
-        photo.label = state.taxonomy.labels[l].ru;
-        photo.labelConfidence = labels[l];
-        if (photo.latitude != null) {
-          try { photo.place = await placeName(photo.latitude, photo.longitude); } catch { photo.place = null; }
-        }
+        await analyzePhoto(worker, photo);
         photo.stage = 'image';
       } catch (error) {
         console.error(error);
         photo.stage = 'failed';
         photo.error = String(error.message || error);
       }
+      await persist(photo);
       done++;
       scheduleRender();
+      await breathe();
     }
   } finally {
-    model.close();
+    worker.close();
   }
 }
 
 async function analyzeText() {
-  const todo = state.photos.filter((p) => p.stage === 'image' && needsText(p));
-  state.photos.filter((p) => p.stage === 'image' && !needsText(p)).forEach((p) => { p.stage = 'done'; p.textSkipped = true; });
+  for (const photo of state.photos) {
+    if (photo.stage === 'image' && !needsText(photo)) {
+      photo.stage = 'done';
+      photo.textSkipped = true;
+      persist(photo);
+    }
+  }
+  const todo = state.photos.filter((p) => p.stage === 'image');
   if (!todo.length) return;
   setStatus('Загружаю распознавание текста…');
+  // Поток только готовит картинки для чтения текста, модель CLIP он не загружает
+  const worker = new TaskWorker('./image-worker.js');
   const reader = await createTextReader();
   try {
     let done = 0;
     for (const photo of todo) {
-      setStatus(`Читаю текст: ${done + 1} из ${todo.length}`, done / todo.length);
+      if (!isListed(photo)) continue;
+      setStatus(`Читаю текст: ${done + 1} из ${todo.length}. ${WAIT_HINT}`, done / todo.length);
       try {
-        const bitmap = await decode(photo.file);
-        const c = ocrCanvas(bitmap);
-        bitmap.close?.();
-        const { data } = await reader.recognize(c, {}, { blocks: true, text: true });
+        let image;
+        try {
+          image = (await worker.request({ type: 'ocrImage', file: photo.file })).blob;
+        } catch (error) {
+          if (!error.decode) throw error;
+          const bitmap = await decode(photo.file);
+          try { image = await ocrImage(bitmap); } finally { bitmap.close?.(); }
+        }
+        const { data } = await reader.recognize(image, {}, { blocks: true, text: true });
         photo.lines = readText(data);
         photo.textSkipped = false;
         photo.stage = photo.lines.length ? 'text' : 'done';
@@ -408,10 +395,13 @@ async function analyzeText() {
         console.error(error);
         photo.stage = 'done';
       }
+      await persist(photo);
       done++;
       scheduleRender();
+      await breathe();
     }
   } finally {
+    worker.close();
     await reader.terminate();
   }
 }
@@ -420,39 +410,68 @@ async function analyzeTopics() {
   const todo = state.photos.filter((p) => p.stage === 'text');
   if (!todo.length) return;
   if (!state.topics) state.topics = await loadMatrix('topics.f32', state.taxonomy.topics.length);
-  let model;
+  const worker = new TaskWorker('./topic-worker.js');
   try {
-    model = await createTopicModel((loaded, total) => setStatus(
-      `Загружаю модель для темы текста: ${megabytes(loaded)} из ${megabytes(total)} МБ. Это нужно один раз.`, loaded / total));
-  } catch (error) {
-    console.error(error);
-    todo.forEach((p) => { p.stage = 'done'; p.topicError = true; });
-    return;
-  }
-  try {
+    try {
+      await worker.load('topic', (loaded, total) => setStatus(
+        `Загружаю модель для темы текста: ${megabytes(loaded)} из ${megabytes(total)} МБ. Это нужно один раз.`, loaded / total));
+    } catch (error) {
+      console.error(error);
+      for (const photo of todo) {
+        photo.stage = 'done';
+        photo.topicError = true;
+        await persist(photo);
+      }
+      return;
+    }
     let done = 0;
     for (const photo of todo) {
-      setStatus(`Определяю тему текста: ${done + 1} из ${todo.length}`, done / todo.length);
-      await new Promise((r) => setTimeout(r, 30));
-      const text = photo.lines.join(' ').slice(0, 600);
-      const vector = normalize(model.embed(TOPIC_PREFIX + text).embeddings[0].floatEmbedding);
-      const s = scores(state.topics, vector);
-      photo.topic = state.taxonomy.topics[argmax(s)];
+      if (!isListed(photo)) continue;
+      setStatus(`Определяю тему текста: ${done + 1} из ${todo.length}. ${WAIT_HINT}`, done / todo.length);
+      try {
+        const text = photo.lines.join(' ').slice(0, 600);
+        const { vector } = await worker.request({ type: 'embed', text: TOPIC_PREFIX + text });
+        photo.topic = state.taxonomy.topics[argmax(scores(state.topics, normalize(vector)))];
+      } catch (error) {
+        console.error(error);
+        photo.topicError = true;
+      }
       photo.stage = 'done';
+      await persist(photo);
       done++;
       scheduleRender();
     }
   } finally {
-    model.close();
+    worker.close();
   }
 }
+
+// Пока идёт разбор, экран не гаснет (Safari 16.4 и новее)
+let wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (on && !wakeLock && document.visibilityState === 'visible' && navigator.wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!on && wakeLock) {
+      const lock = wakeLock;
+      wakeLock = null;
+      await lock.release();
+    }
+  } catch {
+    wakeLock = null;
+  }
+}
+
+const unfinished = (p) => p.stage === 'new' || p.stage === 'image' || p.stage === 'text';
 
 async function run() {
   if (state.busy) return;
   state.busy = true;
+  keepAwake(true);
   render();
   try {
-    while (state.photos.some((p) => p.stage === 'new' || p.stage === 'image' || p.stage === 'text')) {
+    while (state.photos.some(unfinished)) {
       await analyzeImages();
       await analyzeText();
       await analyzeTopics();
@@ -460,72 +479,118 @@ async function run() {
     setStatus('');
   } catch (error) {
     console.error(error);
-    setStatus(`Ошибка: ${error.message || error}. Попробуйте обновить страницу.`);
+    setStatus(`Ошибка: ${error.message || error}. Обновите страницу, разбор продолжится с того же места.`);
   } finally {
     state.busy = false;
+    keepAwake(false);
     render();
   }
 }
 
-function addFiles(files) {
+function isImage(file) {
+  return file.type.startsWith('image/') || /\.(heic|heif|jpe?g|png|webp)$/i.test(file.name);
+}
+
+let noteTimer = null;
+function note(text) {
+  if (state.busy) return;
+  setStatus(text);
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => { if (!state.busy && $('#status-text').textContent === text) setStatus(''); }, 6000);
+}
+
+async function addFiles(files) {
+  const known = new Set(state.photos.map((p) => p.key));
+  const added = [];
+  let repeated = 0;
   for (const file of files) {
-    if (!file.type.startsWith('image/') && !/\.(heic|heif|jpe?g|png)$/i.test(file.name)) continue;
-    state.photos.push({ id: state.nextId++, file, stage: 'new', lines: [] });
+    if (!isImage(file)) continue;
+    const key = `${file.name}|${file.size}`;
+    if (known.has(key)) {
+      repeated++;
+      continue;
+    }
+    known.add(key);
+    const photo = { id: state.nextId++, key, file, name: file.name, type: file.type, size: file.size, stage: 'new', lines: [] };
+    state.photos.push(photo);
+    added.push(photo);
   }
+  if (!added.length) {
+    if (repeated) note('Эти фото уже есть в списке.');
+    return;
+  }
+  setStatus(`Добавляю ${added.length} фото…`);
   render();
   run();
+  // Копии фото на телефоне, чтобы список пережил перезагрузку страницы
+  for (const photo of added) {
+    if (!isListed(photo)) continue;
+    await store.saveFile(photo.id, photo.file);
+    await persist(photo);
+  }
+}
+
+async function clearAll() {
+  if (!state.photos.length) return;
+  if (!confirm('Убрать все фото из списка? В галерее iPhone они останутся.')) return;
+  for (const photo of state.photos) if (photo.thumb) URL.revokeObjectURL(photo.thumb);
+  state.photos = [];
+  state.open.clear();
+  await store.clearAll();
+  setStatus(state.busy ? 'Останавливаю разбор…' : '');
+  render();
 }
 
 // ---------- Сохранение ----------
 
-function extension(file) {
-  const match = /\.([a-z0-9]+)$/i.exec(file.name);
+function extension(photo) {
+  const match = /\.([a-z0-9]+)$/i.exec(photo.name || '');
   if (match) return match[1].toLowerCase() === 'jpeg' ? 'jpg' : match[1].toLowerCase();
-  return { 'image/png': 'png', 'image/heic': 'heic' }[file.type] || 'jpg';
+  return { 'image/png': 'png', 'image/heic': 'heic', 'image/webp': 'webp' }[photo.type] || 'jpg';
 }
 
 function safe(name) {
   return name.replace(/[\/\\:*?"<>|]/g, '-').trim() || 'Фото';
 }
 
-async function saveZip(groups, zipName) {
-  setStatus('Собираю архив…');
-  const blob = await new Promise(async (resolve, reject) => {
-    const chunks = [];
-    const zip = new Zip((error, chunk, final) => {
-      if (error) { reject(error); return; }
-      chunks.push(chunk);
-      if (final) resolve(new Blob(chunks, { type: 'application/zip' }));
-    });
-    try {
-      for (const group of groups) {
-        const used = new Set();
-        const folder = safe(categoryName(group.id));
-        for (const photo of group.photos) {
-          const ext = extension(photo.file);
-          const base = safe(proposedName(photo));
-          let name = `${base}.${ext}`;
-          for (let n = 2; used.has(name.toLowerCase()); n++) name = `${base} (${n}).${ext}`;
-          used.add(name.toLowerCase());
-          const entry = new ZipPassThrough(`${folder}/${name}`);
-          entry.mtime = photo.date || new Date();
-          zip.add(entry);
-          entry.push(new Uint8Array(await photo.file.arrayBuffer()), true);
+let saving = false;
+async function saveZip(list, zipName) {
+  if (saving) return;
+  saving = true;
+  const total = list.reduce((sum, g) => sum + g.photos.length, 0);
+  try {
+    const entries = [];
+    for (const group of list) {
+      const used = new Set();
+      const folder = safe(categoryName(group.id));
+      for (const photo of group.photos) {
+        setStatus('Собираю архив…', entries.length / total);
+        const ext = extension(photo);
+        const base = safe(proposedName(photo));
+        let name = `${base}.${ext}`;
+        for (let n = 2; used.has(name.toLowerCase()); n++) name = `${base} (${n}).${ext}`;
+        used.add(name.toLowerCase());
+        if (photo.crc == null) {
+          photo.crc = await crc32(photo.file);
+          persist(photo);
         }
+        entries.push({ name: `${folder}/${name}`, blob: photo.file, crc: photo.crc, date: photo.date || new Date() });
       }
-      zip.end();
-    } catch (error) {
-      reject(error);
     }
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = zipName;
-  document.body.appendChild(link);
-  link.click();
-  setTimeout(() => { link.remove(); URL.revokeObjectURL(url); }, 120000);
-  setStatus(state.busy ? $('#status-text').textContent : '');
+    const url = URL.createObjectURL(zipBlob(entries));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = zipName;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => { link.remove(); URL.revokeObjectURL(url); }, 120000);
+    note('Архив готов. Если Safari спросит, нажмите «Загрузить»: архив появится в «Файлах», в папке «Загрузки».');
+  } catch (error) {
+    console.error(error);
+    setStatus(`Не удалось собрать архив: ${error.message || error}`);
+  } finally {
+    saving = false;
+  }
 }
 
 // ---------- Экран ----------
@@ -563,39 +628,113 @@ function el(tag, props = {}, children = []) {
   return node;
 }
 
+function setText(node, text) {
+  if (node.textContent !== text) node.textContent = text;
+}
+
+// Экран обновляется по месту: уже показанные группы и миниатюры не пересоздаются,
+// поэтому нажатия не теряются, пока идёт разбор
+const view = { groups: new Map(), cells: new Map() };
+
+function cellFor(photo) {
+  let cell = view.cells.get(photo.id);
+  if (!cell) {
+    cell = el('button', { class: 'cell', onclick: () => openPhoto(photo) }, [el('img', { alt: '', loading: 'lazy' })]);
+    view.cells.set(photo.id, cell);
+  }
+  const img = cell.firstChild;
+  if (photo.thumb && img.getAttribute('src') !== photo.thumb) img.src = photo.thumb;
+  const name = proposedName(photo);
+  if (cell.title !== name) {
+    cell.title = name;
+    img.alt = name;
+  }
+  return cell;
+}
+
+function groupView(id) {
+  const existing = view.groups.get(id);
+  if (existing) return existing;
+  const details = el('details', { class: 'group' });
+  const name = el('span', { class: 'group-name' });
+  const count = el('span', { class: 'group-count' });
+  const strip = el('span', { class: 'strip' });
+  const grid = el('div', { class: 'grid' });
+  const save = el('button', {
+    class: 'secondary save-group',
+    onclick: () => {
+      const group = groups().find((g) => g.id === id);
+      if (group) saveZip([group], `${safe(categoryName(id))}.zip`);
+    },
+  });
+  details.append(el('summary', {}, [name, count, strip]), grid, save);
+  details.addEventListener('toggle', () => {
+    if (details.open === state.open.has(id)) return;
+    if (details.open) state.open.add(id); else state.open.delete(id);
+    render();
+  });
+  const entry = { details, name, count, strip, grid, save, stripKey: '', gridKey: '' };
+  view.groups.set(id, entry);
+  return entry;
+}
+
 function render() {
   const list = groups();
   const failed = state.photos.filter((p) => p.stage === 'failed').length;
   $('#intro').hidden = state.photos.length > 0;
   $('#actions').hidden = state.photos.length === 0;
+  $('#summary-row').hidden = state.photos.length === 0;
   $('#save-all').disabled = state.busy || list.length === 0;
-  $('#summary').textContent = state.photos.length
+  setText($('#summary'), state.photos.length
     ? `${state.photos.length} фото, категорий: ${list.length}` + (failed ? `. Не удалось открыть: ${failed}` : '')
-    : '';
+    : '');
+
+  const live = new Set(list.map((g) => g.id));
+  for (const [id, g] of view.groups) {
+    if (!live.has(id)) {
+      g.details.remove();
+      view.groups.delete(id);
+    }
+  }
+  const listed = new Set(state.photos.map((p) => p.id));
+  for (const [id, cell] of view.cells) {
+    if (!listed.has(id)) {
+      cell.remove();
+      view.cells.delete(id);
+    }
+  }
 
   const container = $('#groups');
-  container.replaceChildren(...list.map((group) => {
-    const details = el('details', { class: 'group', open: state.open.has(group.id) });
-    details.addEventListener('toggle', () => {
-      if (details.open) state.open.add(group.id); else state.open.delete(group.id);
-    });
-    const strip = group.photos.slice(0, 4).map((p) => el('img', { src: p.thumb, alt: '' }));
-    details.append(
-      el('summary', {}, [
-        el('span', { class: 'group-name' }, categoryName(group.id)),
-        el('span', { class: 'group-count' }, String(group.photos.length)),
-        el('span', { class: 'strip' }, strip),
-      ]),
-      el('div', { class: 'grid' }, group.photos.map((p) => el('button', {
-        class: 'cell', onclick: () => openPhoto(p), title: proposedName(p),
-      }, [el('img', { src: p.thumb, alt: proposedName(p), loading: 'lazy' })]))),
-      el('button', {
-        class: 'secondary save-group', disabled: state.busy,
-        onclick: () => saveZip([group], `${safe(categoryName(group.id))}.zip`),
-      }, `Сохранить «${categoryName(group.id)}» в «Файлы»`),
-    );
-    return details;
-  }));
+  list.forEach((group, index) => {
+    const g = groupView(group.id);
+    const title = categoryName(group.id);
+    setText(g.name, title);
+    setText(g.count, String(group.photos.length));
+    if (g.details.open !== state.open.has(group.id)) g.details.open = state.open.has(group.id);
+
+    const first = group.photos.slice(0, 4);
+    const stripKey = first.map((p) => p.thumb).join();
+    if (stripKey !== g.stripKey) {
+      g.strip.replaceChildren(...first.filter((p) => p.thumb).map((p) => el('img', { src: p.thumb, alt: '' })));
+      g.stripKey = stripKey;
+    }
+    // Сетку строим только у открытой группы
+    if (g.details.open) {
+      const cells = group.photos.map(cellFor);
+      const gridKey = group.photos.map((p) => p.id).join();
+      if (gridKey !== g.gridKey) {
+        g.grid.replaceChildren(...cells);
+        g.gridKey = gridKey;
+      }
+    } else if (g.gridKey) {
+      g.grid.replaceChildren();
+      g.gridKey = '';
+    }
+    g.save.disabled = state.busy;
+    setText(g.save, `Сохранить «${title}» в «Файлы»`);
+
+    if (container.children[index] !== g.details) container.insertBefore(g.details, container.children[index] || null);
+  });
 }
 
 function openPhoto(photo) {
@@ -604,6 +743,7 @@ function openPhoto(photo) {
   const select = el('select', {
     onchange: () => {
       photo.userCategory = select.value === photo.category ? null : select.value;
+      persist(photo);
       render();
       fill();
     },
@@ -630,6 +770,7 @@ function openPhoto(photo) {
         class: 'secondary', onclick: () => {
           photo.forceText = true;
           photo.stage = 'image';
+          persist(photo);
           dialog.close();
           run();
         },
@@ -658,24 +799,30 @@ async function start() {
       loadMatrix('categories.f32', taxonomy.categories.length),
       loadMatrix('labels.f32', taxonomy.labels.length),
     ]);
+    pruneModelCache([...manifest.image.parts, ...manifest.topic.parts].map((p) => new URL(p, MODELS).href));
     $('#sizes').textContent = `При первом запуске загрузится модель для фото (${megabytes(manifest.image.size)} МБ), а если на фото есть текст, ещё модель для его темы (${megabytes(manifest.topic.size)} МБ). Лучше по Wi-Fi.`;
+    await restore();
     $('#pick').disabled = false;
+    render();
+    if (state.photos.some(unfinished)) run();
   } catch (error) {
     setStatus(`Не удалось загрузить данные: ${error.message || error}`);
   }
 }
 
 $('#files').addEventListener('change', (event) => {
-  addFiles([...event.target.files]);
+  const files = [...event.target.files];
   event.target.value = '';
+  addFiles(files);
 });
 for (const button of document.querySelectorAll('[data-pick]')) {
   button.addEventListener('click', () => $('#files').click());
 }
 $('#save-all').addEventListener('click', () => saveZip(groups(), `По полочкам ${isoDate(new Date())}.zip`));
+$('#clear').addEventListener('click', clearAll);
 $('#photo-close').addEventListener('click', () => $('#photo').close());
-window.addEventListener('beforeunload', (event) => {
-  if (state.photos.length) event.preventDefault();
-});
+document.addEventListener('visibilitychange', () => { if (state.busy) keepAwake(true); });
+// Без этого Safari на iPhone не подсвечивает нажатую кнопку
+document.addEventListener('touchstart', () => {}, { passive: true });
 
 start();
