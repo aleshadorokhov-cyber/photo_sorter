@@ -4,6 +4,7 @@
   ImageEncoder.mlpackage   кодировщик изображений в формате Core ML
   categories.f32           эмбеддинги категорий (float32, N x 512)
   labels.f32               эмбеддинги подписей «что на фото» (float32, M x 512)
+  reference.f32            эмбеддинг контрольной картинки для теста PhotoSorterTests
 
 Тексты категорий и подписей берутся из PhotoSorter/Resources/taxonomy.json.
 Текстовый кодировщик в приложение не попадает: все тексты кодируются здесь заранее.
@@ -56,6 +57,20 @@ def export_embeddings(model, tokenizer, taxonomy, out):
     print(f"categories {cats.shape}, labels {labels.shape}")
 
 
+def reference_image():
+    """Контрольная картинка 224x224: R = x, G = y, B = (x + y) / 2. Тест на Swift рисует такую же."""
+    xs = torch.arange(IMAGE_SIZE).view(1, -1).expand(IMAGE_SIZE, -1)
+    ys = torch.arange(IMAGE_SIZE).view(-1, 1).expand(-1, IMAGE_SIZE)
+    rgb = torch.stack([xs, ys, (xs + ys) // 2]).float() / 255.0
+    return rgb.unsqueeze(0)
+
+
+def export_reference(model, out):
+    with torch.no_grad():
+        e = ImageEncoder(model.visual).eval()(reference_image())[0]
+    e.numpy().astype("<f4").tofile(os.path.join(out, "reference.f32"))
+
+
 def export_image_encoder(model, out, quantize):
     import coremltools as ct
 
@@ -102,6 +117,7 @@ def main():
     tokenizer = open_clip.get_tokenizer(MODEL)
 
     export_embeddings(model, tokenizer, taxonomy, args.out)
+    export_reference(model, args.out)
     export_image_encoder(model, args.out, quantize=not args.no_quantize)
     print("готово:", args.out)
 

@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build:
-    name: Сборка для симулятора
+    name: Сборка и проверка
     runs-on: macos-15
     timeout-minutes: 60
     steps:
@@ -46,17 +46,24 @@ jobs:
           brew install xcodegen
           xcodegen generate
 
-      - name: Собрать
+      - name: Собрать и проверить модель на симуляторе
         run: |
+          set -o pipefail
           xcodebuild -version
-          xcodebuild build \
+          # Первый доступный симулятор iPhone
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          print(next(d['udid'] for runtime, ds in devices.items() if 'iOS' in runtime for d in ds if d['name'].startswith('iPhone')))
+          ")
+          xcodebuild test \
             -project PhotoSorter.xcodeproj \
             -scheme PhotoSorter \
             -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination "id=$DEVICE" \
             CODE_SIGNING_ALLOWED=NO \
-            -quiet
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" \
+            | grep -E "Близость|error:|Test Case|Executed|\*\* (BUILD|TEST)"
 
   testflight:
     name: Сборка в TestFlight

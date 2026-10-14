@@ -25,6 +25,9 @@ targets:
         buildPhase: resources
       - path: PhotoSorter/Generated/labels.f32
         buildPhase: resources
+    scheme:
+      testTargets:
+        - PhotoSorterTests
     info:
       path: PhotoSorter/Info.plist
       properties:
@@ -43,3 +46,17 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
         ENABLE_PREVIEWS: YES
+
+  # Проверяет на симуляторе, что модель в Core ML считает так же, как исходная в PyTorch.
+  PhotoSorterTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PhotoSorterTests
+      - path: PhotoSorter/Generated/reference.f32
+        buildPhase: resources
+    dependencies:
+      - target: PhotoSorter
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES

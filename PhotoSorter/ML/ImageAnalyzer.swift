@@ -35,7 +35,8 @@ final class ImageAnalyzer: @unchecked Sendable {
                       labelIndex: label, labelConfidence: labelConfidence)
     }
 
-    private func embedding(for image: CGImage, orientation: CGImagePropertyOrientation) throws -> [Float] {
+    /// Нормированный эмбеддинг картинки (512 чисел). Открыт для теста PhotoSorterTests.
+    func embedding(for image: CGImage, orientation: CGImagePropertyOrientation) throws -> [Float] {
         let request = VNCoreMLRequest(model: model)
         // Как в CLIP: короткая сторона приводится к 224 точкам, лишнее обрезается по краям.
         request.imageCropAndScaleOption = .centerCrop

@@ -18,7 +18,7 @@
 
 1. `ml/export_models.py` скачивает веса, переводит модель в `PhotoSorter/Generated/ImageEncoder.mlpackage` и сохраняет эмбеддинги категорий и подписей. Результат кешируется.
 2. XcodeGen создаёт проект из `project.yml`.
-3. `xcodebuild` собирает приложение для симулятора на каждый PR.
+3. `xcodebuild test` на каждый PR собирает приложение и на симуляторе сверяет модель в Core ML с исходной в PyTorch (`PhotoSorterTests`).
 
 Сборка в TestFlight запускается вручную: Actions, iOS, Run workflow, галочка «Отправить сборку в TestFlight». Для неё нужны секреты репозитория `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` и `APPLE_TEAM_ID`.
 
@@ -31,6 +31,7 @@ PhotoSorter/
   ML/         CLIP через Core ML и распознавание текста
   Views/      экраны SwiftUI
   Resources/  taxonomy.json, иконка
+PhotoSorterTests/  проверка модели на симуляторе
 ml/           подготовка модели для iPhone
 project.yml   описание проекта для XcodeGen
 ```
