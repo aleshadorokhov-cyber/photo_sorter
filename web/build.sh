@@ -11,6 +11,11 @@ rm -rf "$OUT"
 mkdir -p "$OUT"/vendor/{ort,tesseract,tesseract-core,tessdata,mediapipe,exifr} "$OUT/models"
 cp "$ROOT"/web/{index.html,style.css,app.js,images.js,models.js,store.js,zip.js,image-worker.js,topic-worker.js} "$OUT/"
 cp "$ROOT/PhotoSorter/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png" "$OUT/icon.png"
+
+# Версия в адресах стилей и скриптов: после обновления Safari не берёт из кеша старые файлы
+VERSION=$(cat "$ROOT"/web/{index.html,style.css,app.js,images.js,models.js,store.js,zip.js,image-worker.js,topic-worker.js} | sha256sum | cut -c1-10)
+sed -i -E "s/(href=\"style\.css|src=\"app\.js)\"/\1?v=$VERSION\"/" "$OUT/index.html"
+sed -i -E "s#'\./(images|models|store|zip|image-worker|topic-worker)\.js'#'./\1.js?v=$VERSION'#g" "$OUT"/{app.js,image-worker.js,topic-worker.js}
 touch "$OUT/.nojekyll"
 
 cp "$NM"/onnxruntime-web/dist/{ort.wasm.min.mjs,ort-wasm-simd-threaded.mjs,ort-wasm-simd-threaded.wasm} "$OUT/vendor/ort/"

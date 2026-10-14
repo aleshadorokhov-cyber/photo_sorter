@@ -4,8 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#f6efe3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#16120e" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#00326E">
 <title>По полочкам</title>
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
@@ -13,16 +12,23 @@
 </head>
 <body>
 <header class="hero">
+  <svg class="waves" viewBox="0 0 400 400" aria-hidden="true" preserveAspectRatio="xMaxYMax slice">
+  <g>
+    <circle cx="300" cy="300" r="230" fill="#EBF0D6" style="--i:0"/>
+    <circle cx="306" cy="310" r="225" fill="#9AC854" style="--i:1"/>
+    <circle cx="312" cy="320" r="220" fill="#4BAF46" style="--i:2"/>
+    <circle cx="318" cy="330" r="215" fill="#0A8F2D" style="--i:3"/>
+    <circle cx="324" cy="340" r="210" fill="#0078AE" style="--i:4"/>
+    <circle cx="330" cy="350" r="205" fill="#005491" style="--i:5"/>
+    <circle cx="336" cy="360" r="200" fill="#00326E" style="--i:6"/>
+  </g>
+  </svg>
   <div class="hero-top">
     <img src="icon.png" alt="" class="logo">
     <div>
       <h1>По полочкам</h1>
-      <p class="tagline">Разбирает снимки по категориям прямо в Safari. Фото не покидают телефон.</p>
+      <p class="tagline">Нейросеть наводит порядок в галерее прямо на телефоне</p>
     </div>
-  </div>
-  <div class="shelf-art" aria-hidden="true">
-    <div class="plank"><i></i><i></i><i></i><i></i><i></i></div>
-    <div class="plank"><i></i><i></i><i></i><i></i></div>
   </div>
   <ol id="stages" class="stages" data-stage="1">
     <li>Выбрать</li>
@@ -33,9 +39,16 @@
 
 <main>
   <section id="intro" class="card intro">
-    <p>Выберите фото, и приложение разложит их по категориям: внутри от новых к старым, с именем вида «2026-07-23 Пятигорск, Белка». Текст на фото оно прочитает и определит его тему.</p>
-    <p class="muted" id="sizes">Загружаю…</p>
+    <h2 class="headline">Тысячи снимков.<br><span>Идеальный порядок.</span></h2>
+    <p class="lead">Природа, еда, документы, чеки, скриншоты: нейросеть узнаёт, что на каждом фото, читает текст на снимках и раскладывает всё по альбомам. Свежие снимки сверху.</p>
+    <ul class="perks">
+      <li><span>🔒</span>Фото не покидают телефон</li>
+      <li><span>🧠</span>23 категории</li>
+      <li><span>📖</span>Читает текст на фото</li>
+      <li><span>✨</span>Без регистрации</li>
+    </ul>
     <button id="pick" class="primary cta" data-pick disabled>Выбрать фото</button>
+    <p class="muted" id="sizes">Загружаю…</p>
     <p class="muted">Как выбрать сразу весь альбом, написано внизу, в «Помощи».</p>
     <p class="muted credits">Модели: OpenCLIP (MIT), EmbeddingGemma (Gemma Terms of Use), Tesseract (Apache 2.0). Города: GeoNames, CC BY 4.0.</p>
   </section>

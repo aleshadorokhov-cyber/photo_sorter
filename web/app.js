@@ -1134,8 +1134,8 @@ function groupView(id) {
   const existing = view.groups.get(id);
   if (existing) return existing;
   const details = el('details', { class: 'group' });
-  // У каждой полки свой цвет, постоянный для категории
-  details.style.setProperty('--hue', String([...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)));
+  // У каждой полки свой оттенок от салатового до голубого, постоянный для категории
+  details.style.setProperty('--hue', String(90 + [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7) % 130));
   const name = el('span', { class: 'group-name' });
   const icon = el('span', { class: 'group-icon', ariaHidden: 'true' }, categoryIcon(id));
   const count = el('span', { class: 'group-count' });
