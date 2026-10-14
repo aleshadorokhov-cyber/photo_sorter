@@ -42,6 +42,9 @@ jobs:
       - name: Подготовить модели
         if: steps.models.outputs.cache-hit != 'true'
         run: |
+          # MediaPipe для Python подгружает библиотеки EGL/GLES даже на процессоре.
+          sudo apt-get update -q
+          sudo apt-get install -yq --no-install-recommends libegl1 libgles2
           pip install torch==2.14.1 torchvision==0.29.1 --index-url https://download.pytorch.org/whl/cpu
           pip install open_clip_torch==3.3.0 numpy onnx==1.23.2 onnx-ir==1.0.0 onnxruntime==1.29.0 mediapipe==1.1.0
           python ml/export_web.py --out web-build/models
