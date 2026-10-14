@@ -181,19 +181,27 @@ async function readMeta(file) {
   };
 }
 
+// Город, в черте которого снято фото. Крупный город берёт верх над соседним посёлком
+// (Пятигорск, а не Горячеводский), а за городом подписывается ближайший город не дальше 40 км.
 async function placeName(latitude, longitude) {
   if (!state.cities) state.cities = await (await fetchOk(new URL('cities.json', MODELS))).json();
-  const { names, coords } = state.cities;
+  const { names, coords, population = [] } = state.cities;
   const cos = Math.cos(latitude * Math.PI / 180);
-  let best = -1, bestDistance = Infinity;
+  let nearest = -1, nearestKm = Infinity, inside = -1, insideScore = Infinity;
   for (let i = 0; i < names.length; i++) {
     const dy = coords[2 * i] - latitude;
     const dx = (coords[2 * i + 1] - longitude) * cos;
-    const d = dy * dy + dx * dx;
-    if (d < bestDistance) { bestDistance = d; best = i; }
+    const km = Math.sqrt(dy * dy + dx * dx) * 111.2;
+    if (km < nearestKm) { nearestKm = km; nearest = i; }
+    // Примерный радиус города: 5 км у Пятигорска, 22 км у Москвы, не меньше 3 км
+    const people = population[i] || 5000;
+    if (km <= Math.max(3, 0.1 * Math.cbrt(people))) {
+      const score = km / people ** 0.4;
+      if (score < insideScore) { insideScore = score; inside = i; }
+    }
   }
-  // Ближайший город не дальше ~40 км
-  return Math.sqrt(bestDistance) * 111 <= 40 ? names[best] : null;
+  if (inside >= 0) return names[inside];
+  return nearestKm <= 40 ? names[nearest] : null;
 }
 
 function isoDate(date) {
