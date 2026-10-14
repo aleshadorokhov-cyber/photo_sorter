@@ -10,6 +10,10 @@ on:
         description: "Отправить сборку в TestFlight"
         type: boolean
         default: false
+      release:
+        description: "Выложить .ipa и источник SideStore в Releases (видно всем)"
+        type: boolean
+        default: false
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -149,9 +153,9 @@ jobs:
             PhotoSorter.ipa
             source.json
 
-      # Только для main: новая версия появляется в SideStore как обновление.
+      # Публикация только по явному запуску вручную из main. Без неё .ipa лежит лишь в артефактах сборки.
       - name: Выложить в Releases
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
