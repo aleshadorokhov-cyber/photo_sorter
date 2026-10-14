@@ -1,0 +1,17 @@
+# Xcode
+*.xcodeproj
+xcuserdata/
+DerivedData/
+build/
+
+# Модель и эмбеддинги собираются в CI скриптом ml/export_models.py
+PhotoSorter/Generated/
+
+# Python
+__pycache__/
+.venv/
+
+.DS_Store
+
+# Создаёт XcodeGen из project.yml
+PhotoSorter/Info.plist
