@@ -99,7 +99,9 @@ a.button:active { filter: brightness(.88); }
 .recipe .inside { margin-left: 4px; padding: 0 0 0 12px; border-left: 2px solid var(--line); }
 .shortcut-name { display: block; font-size: 14px; color: var(--muted); margin-bottom: 12px; }
 .shortcut-name input { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 16px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
-.albums #test-albums, .albums #test-add { display: block; margin: 8px auto 0; }
+.albums #test-albums, .albums #test-add, .albums #test-remove { display: block; margin: 8px auto 0; }
+.source-album { display: block; font-size: 14px; color: var(--muted); margin: 0 0 4px; }
+.source-album input { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 16px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .install { margin: 0 0 12px; }
 .install a.button[hidden] { display: none; }
 .album-list { margin: 0 0 12px; }

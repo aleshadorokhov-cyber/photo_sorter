@@ -603,15 +603,16 @@ const NAME_KEY = 'shortcut-name';
 const SHORTCUT_LINKS = {
   main: '',
   add: '',
+  remove: '',
 };
 
 function setupInstall() {
-  const links = [[$('#install-main'), SHORTCUT_LINKS.main], [$('#install-add'), SHORTCUT_LINKS.add]];
-  for (const [link, url] of links) {
+  for (const [key, url] of Object.entries(SHORTCUT_LINKS)) {
+    const link = $(`#install-${key}`);
     link.hidden = !url;
     if (url) link.href = url;
   }
-  if (!SHORTCUT_LINKS.main && !SHORTCUT_LINKS.add) return;
+  if (!Object.values(SHORTCUT_LINKS).some(Boolean)) return;
   $('#install').hidden = false;
   $('#shortcut-help summary').textContent = 'Если установка не сработала: собрать команды вручную';
 }
@@ -661,9 +662,19 @@ function albumPlan() {
   return { plan, albums: Object.keys(plan).length, photos, skipped, examples };
 }
 
-// Вторая команда: та же, но не создаёт альбом, а докладывает снимки в уже существующий
+// Вторая команда: та же, но не создаёт альбом, а докладывает снимки в уже существующий.
+// Третья убирает снимки из альбома, откуда их брали; из медиатеки они не удаляются
 function addShortcutName() {
   return `${shortcutName()} добавить`;
+}
+
+function removeShortcutName() {
+  return `${shortcutName()} убрать`;
+}
+
+// Альбом в «Фото», из которого брали снимки. Пусто: снимки остаются там, где были
+function sourceAlbum() {
+  return $('#source-album').value.trim();
 }
 
 // Альбомы, которые уже есть в «Фото». Названия берутся из постоянного списка категорий,
@@ -684,8 +695,46 @@ function saveMadeAlbums(made) {
   } catch { /* не запомнилось: в следующий раз галочки придётся поставить заново */ }
 }
 
-// Альбомы, которые ждут второго нажатия: сначала создаются новые, потом докладываются старые
-let pendingAdd = null;
+// Шаги раскладки, по одному на нажатие: создать новые альбомы, доложить в старые,
+// убрать снимки из альбома, откуда их брали. Каждый шаг запускает свою команду
+let pending = [];
+
+function planSteps(plan) {
+  const made = madeAlbums();
+  const albums = Object.keys(plan);
+  const steps = [];
+  const fresh = albums.filter((album) => !made.has(album));
+  const existing = albums.filter((album) => made.has(album));
+  if (fresh.length) steps.push({ kind: 'create', albums: new Set(fresh) });
+  if (existing.length) steps.push({ kind: 'add', albums: new Set(existing) });
+  const source = sourceAlbum();
+  if (source) steps.push({ kind: 'remove', source });
+  return steps;
+}
+
+// Что положить в буфер для шага. Для «убрать» это тот же вид раскладки, только альбом один:
+// исходный. Снимки, которые снова попали в этот же альбом, из него не убираются
+function stepPayload(step, plan) {
+  if (step.kind === 'remove') {
+    const names = [...new Set(Object.entries(plan)
+      .filter(([album]) => album !== step.source)
+      .flatMap(([, list]) => list))];
+    return names.length ? { [step.source]: names } : null;
+  }
+  const part = pick(plan, step.albums);
+  return Object.keys(part).length ? part : null;
+}
+
+function stepButton(step) {
+  if (step?.kind === 'add') return 'Доложить в альбомы, которые уже есть';
+  if (step?.kind === 'remove') return `Убрать снимки из альбома «${step.source}»`;
+  return 'Разложить по альбомам в «Фото»';
+}
+
+function resetSteps() {
+  pending = [];
+  renderAlbums();
+}
 
 // Кладёт раскладку в буфер обмена и запускает команду
 async function runShortcut(plan, name, message) {
@@ -718,35 +767,35 @@ async function toAlbums() {
     $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
     return;
   }
-  const lost = skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : '';
-  if (pendingAdd) {
-    const add = pick(plan, pendingAdd);
-    if (Object.keys(add).length) {
-      const size = sizeOf(add);
-      if (await runShortcut(add, addShortcutName(), `Докладываю в альбомы, которые уже есть: альбомов ${size.albums}, фото ${size.photos}.`)) pendingAdd = null;
-      renderAlbums();
-      return;
+  if (!pending.length) pending = planSteps(plan);
+  while (pending.length && !stepPayload(pending[0], plan)) pending.shift();
+  const step = pending[0];
+  if (!step) {
+    renderAlbums();
+    return;
+  }
+  const payload = stepPayload(step, plan);
+  const size = sizeOf(payload);
+  const next = pending[1]
+    ? ` Когда вернётесь, нажмите кнопку ещё раз: «${stepButton(pending[1])}».` : '';
+  let ok;
+  if (step.kind === 'create') {
+    const lost = skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : '';
+    ok = await runShortcut(payload, shortcutName(),
+      `Создаю новые альбомы: ${size.albums}, фото ${size.photos}, ищу по именам вроде ${examples.join(', ')}.${lost}${next}`);
+    if (ok) {
+      const made = madeAlbums();
+      for (const album of Object.keys(payload)) made.add(album);
+      saveMadeAlbums(made);
     }
-    pendingAdd = null;
-  }
-  const made = madeAlbums();
-  const fresh = pick(plan, new Set(Object.keys(plan).filter((album) => !made.has(album))));
-  const existing = pick(plan, made);
-  if (Object.keys(fresh).length) {
-    const size = sizeOf(fresh);
-    const later = Object.keys(existing).length
-      ? ' Когда вернётесь, нажмите кнопку ещё раз: остальные снимки лягут в альбомы, которые уже есть.' : '';
-    const ok = await runShortcut(fresh, shortcutName(),
-      `Создаю новые альбомы: ${size.albums}, фото ${size.photos}, ищу по именам вроде ${examples.join(', ')}.${lost}${later}`);
-    if (!ok) return;
-    for (const album of Object.keys(fresh)) made.add(album);
-    saveMadeAlbums(made);
-    pendingAdd = later ? new Set(Object.keys(existing)) : null;
+  } else if (step.kind === 'add') {
+    ok = await runShortcut(payload, addShortcutName(),
+      `Докладываю в альбомы, которые уже есть: альбомов ${size.albums}, фото ${size.photos}.${next}`);
   } else {
-    const size = sizeOf(existing);
-    await runShortcut(existing, addShortcutName(),
-      `Все альбомы уже есть, докладываю в них: альбомов ${size.albums}, фото ${size.photos}.${lost}`);
+    ok = await runShortcut(payload, removeShortcutName(),
+      `Убираю снимки из альбома «${step.source}»: ${size.photos}. Из «Фото» они не удаляются и остаются в альбомах «Сортировка: …».${next}`);
   }
+  if (ok) pending.shift();
   renderAlbums();
 }
 
@@ -783,6 +832,19 @@ async function testAddShortcut() {
     + ' Если альбом пустой или Shortcuts пишут, что не нашли альбом, пришлите снимок экрана команды. Проверочный альбом потом удалите.');
 }
 
+// Третья команда на том же проверочном альбоме: первый снимок уходит из альбома, но остаётся в «Фото»
+async function testRemoveShortcut() {
+  const { examples } = albumPlan();
+  if (!examples.length) {
+    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    return;
+  }
+  const [first] = examples;
+  await runShortcut({ [TEST_ALBUM]: [first] }, removeShortcutName(),
+    `Проверка третьей команды: из альбома «${TEST_ALBUM}» должен пропасть снимок ${first}, а сам снимок должен остаться в Recents.`
+    + ' Если Shortcuts пишут, что не нашли альбом, сначала сделайте две проверки выше. Проверочный альбом потом удалите.');
+}
+
 // Галочки «альбом уже есть»: по ним кнопка решает, создать альбом или доложить в него
 let albumsKey = '';
 
@@ -790,8 +852,8 @@ function renderAlbums() {
   const { plan } = albumPlan();
   const made = madeAlbums();
   const albums = Object.keys(plan);
-  const key = JSON.stringify([albums.map((a) => [a, plan[a].length, made.has(a)]), Boolean(pendingAdd)]);
-  setText($('#to-albums'), pendingAdd ? 'Доложить в альбомы, которые уже есть' : 'Разложить по альбомам в «Фото»');
+  const key = JSON.stringify(albums.map((a) => [a, plan[a].length, made.has(a)]));
+  setText($('#to-albums'), stepButton(pending[0]));
   if (key === albumsKey) return;
   albumsKey = key;
   $('#album-list').replaceChildren(...albums.map((album) => {
@@ -801,8 +863,7 @@ function renderAlbums() {
       if (box.checked) current.add(album);
       else current.delete(album);
       saveMadeAlbums(current);
-      pendingAdd = null;
-      renderAlbums();
+      resetSteps();
     });
     return el('label', { className: 'album-row' }, [box, el('span', {}, album), el('span', { className: 'muted' }, String(plan[album].length))]);
   }));
@@ -904,6 +965,7 @@ function render() {
   $('#to-albums').disabled = state.busy;
   $('#test-albums').disabled = state.busy;
   $('#test-add').disabled = state.busy;
+  $('#test-remove').disabled = state.busy;
   if (list.length) renderAlbums();
   setText($('#summary'), state.photos.length
     ? `${state.photos.length} фото, категорий: ${list.length}` + (failed ? `. Не удалось открыть: ${failed}` : '')
@@ -1043,6 +1105,8 @@ $('#clear').addEventListener('click', clearAll);
 $('#to-albums').addEventListener('click', toAlbums);
 $('#test-albums').addEventListener('click', testShortcut);
 $('#test-add').addEventListener('click', testAddShortcut);
+$('#test-remove').addEventListener('click', testRemoveShortcut);
+$('#source-album').addEventListener('input', resetSteps);
 setupShortcutName();
 setupInstall();
 $('#photo-close').addEventListener('click', () => $('#photo').close());
