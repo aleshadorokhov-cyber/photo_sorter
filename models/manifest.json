@@ -1,0 +1,20 @@
+{
+ "image": {
+  "parts": [
+   "image_encoder-206b35e597.part00",
+   "image_encoder-206b35e597.part01",
+   "image_encoder-206b35e597.part02"
+  ],
+  "size": 126817022
+ },
+ "topic": {
+  "parts": [
+   "embedding_gemma-913b7a1edc.part00",
+   "embedding_gemma-913b7a1edc.part01",
+   "embedding_gemma-913b7a1edc.part02",
+   "embedding_gemma-913b7a1edc.part03",
+   "embedding_gemma-913b7a1edc.part04"
+  ],
+  "size": 183816181
+ }
+}

@@ -1,0 +1,1013 @@
+{
+ "version": 1,
+ "model": "ViT-B-32 laion2b_s34b_b79k",
+ "categories": [
+  {
+   "id": "nature",
+   "name": "Природа",
+   "symbol": "mountain.2",
+   "prompts": [
+    "a landscape photo",
+    "a photo of mountains",
+    "a photo of the sky",
+    "a photo of a forest",
+    "a photo of a cave"
+   ]
+  },
+  {
+   "id": "sea",
+   "name": "Море и пляж",
+   "symbol": "water.waves",
+   "prompts": [
+    "a photo of the sea",
+    "a photo of a beach"
+   ]
+  },
+  {
+   "id": "plants",
+   "name": "Растения и цветы",
+   "symbol": "camera.macro",
+   "prompts": [
+    "a photo of flowers",
+    "a photo of a plant"
+   ]
+  },
+  {
+   "id": "city",
+   "name": "Город и архитектура",
+   "symbol": "building.2",
+   "prompts": [
+    "a photo of a city street",
+    "a photo of a building"
+   ]
+  },
+  {
+   "id": "landmarks",
+   "name": "Достопримечательности",
+   "symbol": "building.columns",
+   "prompts": [
+    "a photo of a monument",
+    "a photo of a statue",
+    "a photo of a famous landmark"
+   ]
+  },
+  {
+   "id": "art",
+   "name": "Музеи и искусство",
+   "symbol": "paintpalette",
+   "prompts": [
+    "a photo of a museum exhibit",
+    "a photo of a painting",
+    "a photo of an artwork"
+   ]
+  },
+  {
+   "id": "people",
+   "name": "Люди",
+   "symbol": "person.2",
+   "prompts": [
+    "a photo of a person",
+    "a portrait",
+    "a group photo of people"
+   ]
+  },
+  {
+   "id": "selfie",
+   "name": "Селфи",
+   "symbol": "person.crop.square",
+   "prompts": [
+    "a selfie of a person taken with a phone camera",
+    "a close-up selfie of a smiling face",
+    "a selfie of friends"
+   ]
+  },
+  {
+   "id": "animals",
+   "name": "Животные",
+   "symbol": "pawprint",
+   "prompts": [
+    "a photo of an animal",
+    "a photo of a pet",
+    "a photo of a bird"
+   ]
+  },
+  {
+   "id": "food",
+   "name": "Еда",
+   "symbol": "fork.knife",
+   "prompts": [
+    "a photo of food",
+    "a photo of a meal"
+   ]
+  },
+  {
+   "id": "documents",
+   "name": "Документы",
+   "symbol": "doc.text",
+   "prompts": [
+    "a photo of a document",
+    "a photo of a passport or ID",
+    "a photo of a contract"
+   ]
+  },
+  {
+   "id": "study",
+   "name": "Учёба",
+   "symbol": "graduationcap",
+   "prompts": [
+    "a photo of a textbook page",
+    "a photo of homework",
+    "a photo of a lecture slide"
+   ]
+  },
+  {
+   "id": "notes",
+   "name": "Заметки от руки",
+   "symbol": "pencil",
+   "prompts": [
+    "a photo of handwritten notes",
+    "a photo of sticky notes",
+    "a hand drawn sketch"
+   ]
+  },
+  {
+   "id": "screenshots",
+   "name": "Скриншоты",
+   "symbol": "iphone",
+   "prompts": [
+    "a screenshot of a phone",
+    "a screenshot of an app",
+    "a screenshot of a website"
+   ]
+  },
+  {
+   "id": "receipts",
+   "name": "Чеки и заказы",
+   "symbol": "doc.plaintext",
+   "prompts": [
+    "a photo of a receipt",
+    "a photo of an order number",
+    "a photo of a ticket"
+   ]
+  },
+  {
+   "id": "shopping",
+   "name": "Покупки и товары",
+   "symbol": "bag",
+   "prompts": [
+    "a photo of a product",
+    "a photo of product packaging",
+    "a photo of clothes in a store"
+   ]
+  },
+  {
+   "id": "tech",
+   "name": "Техника и оборудование",
+   "symbol": "gearshape.2",
+   "prompts": [
+    "a photo of a machine",
+    "a photo of equipment",
+    "a photo of a robot",
+    "a photo of electronics"
+   ]
+  },
+  {
+   "id": "drawings",
+   "name": "Чертежи и схемы",
+   "symbol": "ruler",
+   "prompts": [
+    "a technical drawing",
+    "a diagram",
+    "a schematic"
+   ]
+  },
+  {
+   "id": "transport",
+   "name": "Транспорт",
+   "symbol": "car",
+   "prompts": [
+    "a photo of a car",
+    "a photo of a train",
+    "a photo of an airplane"
+   ]
+  },
+  {
+   "id": "home",
+   "name": "Дом и интерьер",
+   "symbol": "sofa",
+   "prompts": [
+    "a photo of a room interior",
+    "a photo of furniture"
+   ]
+  },
+  {
+   "id": "sport",
+   "name": "Спорт",
+   "symbol": "figure.run",
+   "prompts": [
+    "a photo of sports",
+    "a photo of a gym"
+   ]
+  },
+  {
+   "id": "party",
+   "name": "Праздники",
+   "symbol": "party.popper",
+   "prompts": [
+    "a photo of a party",
+    "a photo of a birthday celebration"
+   ]
+  },
+  {
+   "id": "memes",
+   "name": "Мемы и картинки",
+   "symbol": "face.smiling",
+   "prompts": [
+    "an internet meme with a caption",
+    "a cartoon drawing",
+    "a funny picture from the internet"
+   ]
+  }
+ ],
+ "labels": [
+  {
+   "en": "cat",
+   "ru": "Кошка"
+  },
+  {
+   "en": "dog",
+   "ru": "Собака"
+  },
+  {
+   "en": "puppy",
+   "ru": "Щенок"
+  },
+  {
+   "en": "kitten",
+   "ru": "Котёнок"
+  },
+  {
+   "en": "bird",
+   "ru": "Птица"
+  },
+  {
+   "en": "pigeon",
+   "ru": "Голубь"
+  },
+  {
+   "en": "duck",
+   "ru": "Утка"
+  },
+  {
+   "en": "swan",
+   "ru": "Лебедь"
+  },
+  {
+   "en": "parrot",
+   "ru": "Попугай"
+  },
+  {
+   "en": "squirrel",
+   "ru": "Белка"
+  },
+  {
+   "en": "horse",
+   "ru": "Лошадь"
+  },
+  {
+   "en": "cow",
+   "ru": "Корова"
+  },
+  {
+   "en": "sheep",
+   "ru": "Овцы"
+  },
+  {
+   "en": "goat",
+   "ru": "Коза"
+  },
+  {
+   "en": "pig",
+   "ru": "Свинья"
+  },
+  {
+   "en": "chicken",
+   "ru": "Курица"
+  },
+  {
+   "en": "rabbit",
+   "ru": "Кролик"
+  },
+  {
+   "en": "hamster",
+   "ru": "Хомяк"
+  },
+  {
+   "en": "fish",
+   "ru": "Рыба"
+  },
+  {
+   "en": "aquarium",
+   "ru": "Аквариум"
+  },
+  {
+   "en": "butterfly",
+   "ru": "Бабочка"
+  },
+  {
+   "en": "bee",
+   "ru": "Пчела"
+  },
+  {
+   "en": "spider",
+   "ru": "Паук"
+  },
+  {
+   "en": "hedgehog",
+   "ru": "Ёж"
+  },
+  {
+   "en": "fox",
+   "ru": "Лиса"
+  },
+  {
+   "en": "bear",
+   "ru": "Медведь"
+  },
+  {
+   "en": "deer",
+   "ru": "Олень"
+  },
+  {
+   "en": "monkey",
+   "ru": "Обезьяна"
+  },
+  {
+   "en": "elephant",
+   "ru": "Слон"
+  },
+  {
+   "en": "camel",
+   "ru": "Верблюд"
+  },
+  {
+   "en": "mountain",
+   "ru": "Гора"
+  },
+  {
+   "en": "mountain range",
+   "ru": "Горы"
+  },
+  {
+   "en": "hill",
+   "ru": "Холм"
+  },
+  {
+   "en": "forest",
+   "ru": "Лес"
+  },
+  {
+   "en": "tree",
+   "ru": "Дерево"
+  },
+  {
+   "en": "field",
+   "ru": "Поле"
+  },
+  {
+   "en": "meadow",
+   "ru": "Луг"
+  },
+  {
+   "en": "river",
+   "ru": "Река"
+  },
+  {
+   "en": "lake",
+   "ru": "Озеро"
+  },
+  {
+   "en": "waterfall",
+   "ru": "Водопад"
+  },
+  {
+   "en": "sea",
+   "ru": "Море"
+  },
+  {
+   "en": "beach",
+   "ru": "Пляж"
+  },
+  {
+   "en": "sunset",
+   "ru": "Закат"
+  },
+  {
+   "en": "sunrise",
+   "ru": "Рассвет"
+  },
+  {
+   "en": "sky with clouds",
+   "ru": "Небо и облака"
+  },
+  {
+   "en": "rainbow",
+   "ru": "Радуга"
+  },
+  {
+   "en": "snow",
+   "ru": "Снег"
+  },
+  {
+   "en": "cave",
+   "ru": "Пещера"
+  },
+  {
+   "en": "rocks",
+   "ru": "Скалы"
+  },
+  {
+   "en": "desert",
+   "ru": "Пустыня"
+  },
+  {
+   "en": "park",
+   "ru": "Парк"
+  },
+  {
+   "en": "garden",
+   "ru": "Сад"
+  },
+  {
+   "en": "flower",
+   "ru": "Цветок"
+  },
+  {
+   "en": "bouquet of flowers",
+   "ru": "Букет"
+  },
+  {
+   "en": "houseplant",
+   "ru": "Комнатное растение"
+  },
+  {
+   "en": "mushroom",
+   "ru": "Гриб"
+  },
+  {
+   "en": "autumn leaves",
+   "ru": "Осенние листья"
+  },
+  {
+   "en": "city panorama",
+   "ru": "Панорама города"
+  },
+  {
+   "en": "street",
+   "ru": "Улица"
+  },
+  {
+   "en": "building",
+   "ru": "Здание"
+  },
+  {
+   "en": "skyscraper",
+   "ru": "Небоскрёб"
+  },
+  {
+   "en": "old house",
+   "ru": "Старый дом"
+  },
+  {
+   "en": "church",
+   "ru": "Церковь"
+  },
+  {
+   "en": "cathedral",
+   "ru": "Собор"
+  },
+  {
+   "en": "castle",
+   "ru": "Замок"
+  },
+  {
+   "en": "bridge",
+   "ru": "Мост"
+  },
+  {
+   "en": "tower",
+   "ru": "Башня"
+  },
+  {
+   "en": "observation deck",
+   "ru": "Смотровая площадка"
+  },
+  {
+   "en": "monument",
+   "ru": "Памятник"
+  },
+  {
+   "en": "statue",
+   "ru": "Статуя"
+  },
+  {
+   "en": "fountain",
+   "ru": "Фонтан"
+  },
+  {
+   "en": "square",
+   "ru": "Площадь"
+  },
+  {
+   "en": "museum hall",
+   "ru": "Музейный зал"
+  },
+  {
+   "en": "painting",
+   "ru": "Картина"
+  },
+  {
+   "en": "portrait painting",
+   "ru": "Портрет"
+  },
+  {
+   "en": "sculpture",
+   "ru": "Скульптура"
+  },
+  {
+   "en": "icon",
+   "ru": "Икона"
+  },
+  {
+   "en": "old manuscript",
+   "ru": "Рукопись"
+  },
+  {
+   "en": "person",
+   "ru": "Человек"
+  },
+  {
+   "en": "group of people",
+   "ru": "Компания людей"
+  },
+  {
+   "en": "child",
+   "ru": "Ребёнок"
+  },
+  {
+   "en": "baby",
+   "ru": "Малыш"
+  },
+  {
+   "en": "selfie",
+   "ru": "Селфи"
+  },
+  {
+   "en": "couple",
+   "ru": "Пара"
+  },
+  {
+   "en": "family",
+   "ru": "Семья"
+  },
+  {
+   "en": "wedding",
+   "ru": "Свадьба"
+  },
+  {
+   "en": "crowd",
+   "ru": "Толпа"
+  },
+  {
+   "en": "food",
+   "ru": "Еда"
+  },
+  {
+   "en": "pizza",
+   "ru": "Пицца"
+  },
+  {
+   "en": "salad",
+   "ru": "Салат"
+  },
+  {
+   "en": "soup",
+   "ru": "Суп"
+  },
+  {
+   "en": "cake",
+   "ru": "Торт"
+  },
+  {
+   "en": "dessert",
+   "ru": "Десерт"
+  },
+  {
+   "en": "coffee",
+   "ru": "Кофе"
+  },
+  {
+   "en": "tea",
+   "ru": "Чай"
+  },
+  {
+   "en": "breakfast",
+   "ru": "Завтрак"
+  },
+  {
+   "en": "fruit",
+   "ru": "Фрукты"
+  },
+  {
+   "en": "vegetables",
+   "ru": "Овощи"
+  },
+  {
+   "en": "meat",
+   "ru": "Мясо"
+  },
+  {
+   "en": "sushi",
+   "ru": "Суши"
+  },
+  {
+   "en": "burger",
+   "ru": "Бургер"
+  },
+  {
+   "en": "bread",
+   "ru": "Хлеб"
+  },
+  {
+   "en": "wine",
+   "ru": "Вино"
+  },
+  {
+   "en": "beer",
+   "ru": "Пиво"
+  },
+  {
+   "en": "restaurant table",
+   "ru": "Стол в ресторане"
+  },
+  {
+   "en": "book page",
+   "ru": "Страница книги"
+  },
+  {
+   "en": "textbook exercise",
+   "ru": "Упражнение из учебника"
+  },
+  {
+   "en": "handwritten note",
+   "ru": "Записка от руки"
+  },
+  {
+   "en": "sticky notes",
+   "ru": "Стикеры"
+  },
+  {
+   "en": "sketch",
+   "ru": "Набросок"
+  },
+  {
+   "en": "document",
+   "ru": "Документ"
+  },
+  {
+   "en": "passport",
+   "ru": "Паспорт"
+  },
+  {
+   "en": "contract",
+   "ru": "Договор"
+  },
+  {
+   "en": "form",
+   "ru": "Бланк"
+  },
+  {
+   "en": "letter",
+   "ru": "Письмо"
+  },
+  {
+   "en": "receipt",
+   "ru": "Чек"
+  },
+  {
+   "en": "ticket",
+   "ru": "Билет"
+  },
+  {
+   "en": "order number on a screen",
+   "ru": "Номер заказа"
+  },
+  {
+   "en": "price tag",
+   "ru": "Ценник"
+  },
+  {
+   "en": "menu",
+   "ru": "Меню"
+  },
+  {
+   "en": "sign",
+   "ru": "Вывеска"
+  },
+  {
+   "en": "map",
+   "ru": "Карта"
+  },
+  {
+   "en": "calendar",
+   "ru": "Календарь"
+  },
+  {
+   "en": "whiteboard",
+   "ru": "Доска"
+  },
+  {
+   "en": "presentation slide",
+   "ru": "Слайд"
+  },
+  {
+   "en": "phone screenshot",
+   "ru": "Скриншот"
+  },
+  {
+   "en": "chat messages",
+   "ru": "Переписка"
+  },
+  {
+   "en": "news article",
+   "ru": "Новость"
+  },
+  {
+   "en": "meme",
+   "ru": "Мем"
+  },
+  {
+   "en": "cartoon",
+   "ru": "Мультяшная картинка"
+  },
+  {
+   "en": "chart",
+   "ru": "График"
+  },
+  {
+   "en": "product box",
+   "ru": "Коробка товара"
+  },
+  {
+   "en": "package",
+   "ru": "Упаковка"
+  },
+  {
+   "en": "tube of cream",
+   "ru": "Тюбик крема"
+  },
+  {
+   "en": "medicine",
+   "ru": "Лекарство"
+  },
+  {
+   "en": "cosmetics",
+   "ru": "Косметика"
+  },
+  {
+   "en": "clothes",
+   "ru": "Одежда"
+  },
+  {
+   "en": "shoes",
+   "ru": "Обувь"
+  },
+  {
+   "en": "bag",
+   "ru": "Сумка"
+  },
+  {
+   "en": "watch",
+   "ru": "Часы"
+  },
+  {
+   "en": "jewelry",
+   "ru": "Украшения"
+  },
+  {
+   "en": "toy",
+   "ru": "Игрушка"
+  },
+  {
+   "en": "car",
+   "ru": "Машина"
+  },
+  {
+   "en": "bus",
+   "ru": "Автобус"
+  },
+  {
+   "en": "train",
+   "ru": "Поезд"
+  },
+  {
+   "en": "tram",
+   "ru": "Трамвай"
+  },
+  {
+   "en": "airplane",
+   "ru": "Самолёт"
+  },
+  {
+   "en": "bicycle",
+   "ru": "Велосипед"
+  },
+  {
+   "en": "motorcycle",
+   "ru": "Мотоцикл"
+  },
+  {
+   "en": "boat",
+   "ru": "Лодка"
+  },
+  {
+   "en": "ship",
+   "ru": "Корабль"
+  },
+  {
+   "en": "phone",
+   "ru": "Телефон"
+  },
+  {
+   "en": "laptop",
+   "ru": "Ноутбук"
+  },
+  {
+   "en": "computer",
+   "ru": "Компьютер"
+  },
+  {
+   "en": "tv",
+   "ru": "Телевизор"
+  },
+  {
+   "en": "camera",
+   "ru": "Фотоаппарат"
+  },
+  {
+   "en": "headphones",
+   "ru": "Наушники"
+  },
+  {
+   "en": "cable",
+   "ru": "Кабель"
+  },
+  {
+   "en": "tool",
+   "ru": "Инструмент"
+  },
+  {
+   "en": "machine",
+   "ru": "Станок"
+  },
+  {
+   "en": "engine",
+   "ru": "Двигатель"
+  },
+  {
+   "en": "robot",
+   "ru": "Робот"
+  },
+  {
+   "en": "equipment",
+   "ru": "Оборудование"
+  },
+  {
+   "en": "technical drawing",
+   "ru": "Чертёж"
+  },
+  {
+   "en": "diagram",
+   "ru": "Схема"
+  },
+  {
+   "en": "electrical panel",
+   "ru": "Электрощит"
+  },
+  {
+   "en": "pipes",
+   "ru": "Трубы"
+  },
+  {
+   "en": "construction site",
+   "ru": "Стройка"
+  },
+  {
+   "en": "room",
+   "ru": "Комната"
+  },
+  {
+   "en": "kitchen",
+   "ru": "Кухня"
+  },
+  {
+   "en": "bedroom",
+   "ru": "Спальня"
+  },
+  {
+   "en": "bathroom",
+   "ru": "Ванная"
+  },
+  {
+   "en": "sofa",
+   "ru": "Диван"
+  },
+  {
+   "en": "table",
+   "ru": "Стол"
+  },
+  {
+   "en": "chair",
+   "ru": "Стул"
+  },
+  {
+   "en": "window",
+   "ru": "Окно"
+  },
+  {
+   "en": "door",
+   "ru": "Дверь"
+  },
+  {
+   "en": "gym",
+   "ru": "Спортзал"
+  },
+  {
+   "en": "football",
+   "ru": "Футбол"
+  },
+  {
+   "en": "stadium",
+   "ru": "Стадион"
+  },
+  {
+   "en": "swimming pool",
+   "ru": "Бассейн"
+  },
+  {
+   "en": "ski resort",
+   "ru": "Горнолыжный курорт"
+  },
+  {
+   "en": "birthday cake",
+   "ru": "Праздничный торт"
+  },
+  {
+   "en": "christmas tree",
+   "ru": "Ёлка"
+  },
+  {
+   "en": "fireworks",
+   "ru": "Фейерверк"
+  },
+  {
+   "en": "party",
+   "ru": "Вечеринка"
+  },
+  {
+   "en": "balloons",
+   "ru": "Воздушные шары"
+  },
+  {
+   "en": "concert",
+   "ru": "Концерт"
+  }
+ ],
+ "topics": [
+  "учебник или упражнение",
+  "конспект или записи с урока",
+  "записка от руки",
+  "новость или статья",
+  "спортивная новость",
+  "кассовый чек или квитанция",
+  "номер заказа",
+  "упаковка товара и состав",
+  "лекарство или косметика",
+  "подпись к экспонату в музее",
+  "стихотворение или художественный текст",
+  "вывеска или табличка",
+  "документ или справка",
+  "билет, бронь или расписание",
+  "меню",
+  "реклама или объявление",
+  "переписка в мессенджере",
+  "технический чертёж или схема",
+  "банковская карта или платёж",
+  "адрес или карта",
+  "рецепт блюда",
+  "инструкция или правила",
+  "программный код",
+  "поздравление или открытка",
+  "цены и тарифы"
+ ]
+}
