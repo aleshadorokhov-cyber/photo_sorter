@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2f5bd3">
+<title>По полочкам</title>
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <img src="icon.png" alt="" class="logo">
+  <div>
+    <h1>По полочкам</h1>
+    <p class="muted">Фото разбираются прямо на телефоне и никуда не отправляются.</p>
+  </div>
+</header>
+
+<main>
+  <section id="intro" class="card">
+    <p>Выберите фото, и приложение разложит их по категориям: внутри от новых к старым, с именем вида «2026-07-23 Пятигорск, Белка». Текст на фото оно прочитает и определит его тему.</p>
+    <p class="muted" id="sizes">Загружаю…</p>
+    <button id="pick" class="primary" data-pick disabled>Выбрать фото</button>
+    <p class="muted credits">Модели: OpenCLIP (MIT), EmbeddingGemma (Gemma Terms of Use), Tesseract (Apache 2.0). Города: GeoNames, CC BY 4.0.</p>
+  </section>
+
+  <section id="status" class="card status" hidden>
+    <p id="status-text"></p>
+    <progress id="status-bar" max="1" hidden></progress>
+  </section>
+
+  <p id="summary" class="muted"></p>
+  <section id="groups"></section>
+</main>
+
+<footer id="actions" hidden>
+  <button class="secondary" data-pick>Добавить фото</button>
+  <button id="save-all" class="primary">Сохранить всё в «Файлы»</button>
+</footer>
+
+<input id="files" type="file" accept="image/*" multiple hidden>
+
+<dialog id="photo">
+  <button id="photo-close" class="close" aria-label="Закрыть">✕</button>
+  <div id="photo-body"></div>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

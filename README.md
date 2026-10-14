@@ -38,6 +38,12 @@ https://github.com/aleshadorokhov-cyber/photo_sorter/releases/latest/download/so
 
 Подпись бесплатного Apple ID действует 7 дней, её продлевает «Refresh All» в SideStore.
 
+## Веб-версия
+
+Та же раскладка работает в Safari без установки (`web/`). Фото выбираются вручную, всё считается в браузере: CLIP через onnxruntime-web, текст читает Tesseract (русский и английский), тему текста определяет EmbeddingGemma через MediaPipe. Результат сохраняется архивом с копиями фото по папкам категорий.
+
+Сайт собирает `.github/workflows/web.yml`: `ml/export_web.py` переводит ту же модель OpenCLIP в ONNX (int8), `ml/export_topics.py` кодирует темы из `taxonomy.json`, `ml/export_cities.py` готовит города GeoNames для подписи места без интернета, `web/build.sh` складывает всё в ветку `gh-pages`. Все библиотеки сайт раздаёт сам, без внешних CDN.
+
 ## Структура
 
 ```
@@ -48,7 +54,8 @@ PhotoSorter/
   Views/      экраны SwiftUI
   Resources/  taxonomy.json, иконка
 PhotoSorterTests/  проверка модели на симуляторе
-ml/           подготовка модели для iPhone
+ml/           подготовка моделей для iPhone и веб-версии
+web/          веб-версия
 sidestore/    источник для SideStore
 project.yml   описание проекта для XcodeGen
 ```

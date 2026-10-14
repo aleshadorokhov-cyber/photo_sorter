@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Собирает сайт: страницы, библиотеки из node_modules и модели.
+# Использование: web/build.sh <папка с моделями> <папка сайта>
+set -euo pipefail
+MODELS=$1
+OUT=$2
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+NM="$ROOT/web/node_modules"
+
+rm -rf "$OUT"
+mkdir -p "$OUT"/vendor/{ort,tesseract,tesseract-core,tessdata,mediapipe,exifr,fflate} "$OUT/models"
+cp "$ROOT"/web/{index.html,app.js,clip-worker.js,style.css} "$OUT/"
+cp "$ROOT/PhotoSorter/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png" "$OUT/icon.png"
+touch "$OUT/.nojekyll"
+
+cp "$NM"/onnxruntime-web/dist/{ort.wasm.min.mjs,ort-wasm-simd-threaded.mjs,ort-wasm-simd-threaded.wasm} "$OUT/vendor/ort/"
+cp "$NM"/tesseract.js/dist/{tesseract.esm.min.js,worker.min.js} "$OUT/vendor/tesseract/"
+cp "$NM"/tesseract.js-core/tesseract-core*.{js,wasm} "$OUT/vendor/tesseract-core/"
+cp "$NM"/@tesseract.js-data/rus/4.0.0_best_int/rus.traineddata.gz "$NM"/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz "$OUT/vendor/tessdata/"
+cp "$NM"/@mediapipe/tasks-text/text_bundle.mjs "$NM"/@mediapipe/tasks-text/wasm/* "$OUT/vendor/mediapipe/"
+cp "$NM"/exifr/dist/lite.esm.mjs "$OUT/vendor/exifr/"
+cp "$NM"/fflate/esm/browser.js "$OUT/vendor/fflate/"
+
+cp "$ROOT/PhotoSorter/Resources/taxonomy.json" "$OUT/models/"
+cp "$MODELS"/{image_encoder.onnx,categories.f32,labels.f32,topics.f32,cities.json} "$OUT/models/"
+
+# EmbeddingGemma больше 100 МБ, а GitHub не принимает такие файлы: режем на части по 45 МБ
+split -b 45000000 -d -a 2 "$MODELS/embedding_gemma.task" "$OUT/models/embedding_gemma.part"
+python3 - "$OUT/models" <<'PY'
+import json, os, sys
+d = sys.argv[1]
+parts = sorted(f for f in os.listdir(d) if f.startswith("embedding_gemma.part"))
+manifest = {
+    "image": {"file": "image_encoder.onnx", "size": os.path.getsize(os.path.join(d, "image_encoder.onnx"))},
+    "topic": {"parts": parts, "size": sum(os.path.getsize(os.path.join(d, p)) for p in parts)},
+}
+json.dump(manifest, open(os.path.join(d, "manifest.json"), "w"), indent=1)
+print(json.dumps(manifest))
+PY
+du -sh "$OUT"
