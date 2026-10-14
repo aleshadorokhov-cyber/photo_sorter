@@ -146,8 +146,23 @@ function proposedName(photo) {
   return parts.join(' ');
 }
 
+// Если модель не уверена, снимок идёт в «Прочее», а не в сомнительную категорию.
+// Уверенность — доля лучшей категории в softmax; порог подобран на настоящих снимках
+const OTHER = 'other';
+const DOUBT = 0.6;
+
+function autoCategory(photo) {
+  return !photo.isScreenshot && photo.confidence < DOUBT ? OTHER : photo.category;
+}
+
 function categoryOf(photo) {
-  return photo.userCategory || photo.category;
+  return photo.userCategory || autoCategory(photo);
+}
+
+// Две самые вероятные категории: их видно у снимка из «Прочего», чтобы легче выбрать вручную
+function guesses(photo) {
+  const ids = state.taxonomy.categories.map((c) => c.id);
+  return [...photo.probabilities].map((p, i) => [ids[i], p]).sort((a, b) => b[1] - a[1]).slice(0, 2);
 }
 
 // Значок у полки и у альбома, чтобы категорию было видно с одного взгляда
@@ -155,6 +170,7 @@ const ICONS = {
   nature: '🌿', sea: '🏖️', plants: '🌸', city: '🏙️', landmarks: '🏛️', art: '🎨', people: '👥', selfie: '🤳',
   animals: '🐾', food: '🍜', documents: '📄', study: '📚', notes: '✍️', screenshots: '📱', receipts: '🧾',
   shopping: '🛍️', tech: '💻', drawings: '📐', transport: '🚗', home: '🛋️', sport: '⚽', party: '🎉', memes: '😂',
+  [OTHER]: '🧺',
 };
 
 function categoryIcon(id) {
@@ -162,6 +178,7 @@ function categoryIcon(id) {
 }
 
 function categoryName(id) {
+  if (id === OTHER) return 'Прочее';
   return state.taxonomy.categories.find((c) => c.id === id)?.name || id;
 }
 
@@ -1067,7 +1084,9 @@ function groups() {
     // Внутри категории от новых к старым, фото без даты в конце
     photos: photos.sort((a, b) => (b.date?.getTime() ?? -Infinity) - (a.date?.getTime() ?? -Infinity)),
   }));
-  return list.sort((a, b) => b.photos.length - a.photos.length || categoryName(a.id).localeCompare(categoryName(b.id), 'ru'));
+  // «Прочее» всегда в конце
+  return list.sort((a, b) => (a.id === OTHER) - (b.id === OTHER) || b.photos.length - a.photos.length
+    || categoryName(a.id).localeCompare(categoryName(b.id), 'ru'));
 }
 
 let renderTimer = null;
@@ -1211,16 +1230,19 @@ function openPhoto(photo) {
   const url = URL.createObjectURL(photo.file);
   const select = el('select', {
     onchange: () => {
-      photo.userCategory = select.value === photo.category ? null : select.value;
+      photo.userCategory = select.value === autoCategory(photo) ? null : select.value;
       persist(photo);
       render();
       fill();
     },
-  }, state.taxonomy.categories.map((c) => el('option', { value: c.id, selected: c.id === categoryOf(photo) }, c.name)));
+  }, [...state.taxonomy.categories, { id: OTHER, name: categoryName(OTHER) }]
+    .map((c) => el('option', { value: c.id, selected: c.id === categoryOf(photo) }, c.name)));
 
   const fill = () => {
     const rows = [
       ['Что на фото', `${photo.label} (${Math.round(photo.labelConfidence * 100)}%)`],
+      ...(autoCategory(photo) === OTHER ? [['Модель сомневается', guesses(photo)
+        .map(([id, p]) => `${categoryName(id)} ${Math.round(p * 100)}%`).join(' или ')]] : []),
       ['Дата', photo.date ? photo.date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : 'нет в файле'],
       ['Место', photo.place || (photo.latitude != null ? 'не нашлось города рядом' : 'нет геометки')],
     ];
