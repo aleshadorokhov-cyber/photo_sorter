@@ -1,0 +1,4 @@
+torch==2.7.0
+open_clip_torch==3.3.0
+coremltools==9.0
+numpy
