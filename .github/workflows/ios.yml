@@ -121,26 +121,35 @@ jobs:
           echo "VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Info.plist")" >> "$GITHUB_ENV"
           ls -lh PhotoSorter.ipa
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: PhotoSorter-ipa
-          path: PhotoSorter.ipa
-
-      # Только для main: новая версия появляется в SideStore как обновление.
-      - name: Выложить в Releases и обновить источник SideStore
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      # Источник собирается на каждой сборке, чтобы ошибки в нём ловились ещё в PR.
+      - name: Источник для SideStore
         env:
-          GH_TOKEN: ${{ github.token }}
           BUILD: ${{ github.run_number }}
         run: |
           TAG="v$VERSION-$BUILD"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
           URL="https://github.com/${{ github.repository }}/releases/download/$TAG/PhotoSorter.ipa"
-          NOTES=$(git log -1 --format=%s)
-          python3 sidestore/make_source.py --app "$APP" --ipa PhotoSorter.ipa --url "$URL" --notes "$NOTES" --out source.json
+          python3 sidestore/make_source.py --app "$APP" --ipa PhotoSorter.ipa --url "$URL" \
+            --notes "$(git log -1 --format=%s)" --out source.json
+          cat source.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PhotoSorter-ipa
+          path: |
+            PhotoSorter.ipa
+            source.json
+
+      # Только для main: новая версия появляется в SideStore как обновление.
+      - name: Выложить в Releases
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           gh release create "$TAG" PhotoSorter.ipa source.json \
             --target "$GITHUB_SHA" \
-            --title "По полочкам $VERSION ($BUILD)" \
-            --notes "$NOTES" \
+            --title "По полочкам $TAG" \
+            --notes "$(git log -1 --format=%s)" \
             --latest
 
   testflight:
