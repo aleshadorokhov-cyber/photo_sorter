@@ -683,7 +683,7 @@ async function testShortcut() {
   await runShortcut({ [TEST_ALBUM]: [photo] },
     `Проверка: в «Фото» должен появиться альбом «${TEST_ALBUM}» с одним снимком ${photo}.`
     + ' Если альбом назван длинной строкой со скобками, в команде не хватает действия «Get All Keys in Dictionary» (как добавить, написано в начале шагов ниже) или в Create Photo Album выбрано не Repeat Item.'
-    + ' Если альбом пустой, дайте Shortcuts полный доступ к «Фото» (Settings → Privacy & Security → Photos → Shortcuts → Full Access) и проверьте, что в Find Photos стоит «Name begins with Repeat Item 2».'
+    + ' Если альбом пустой, проверьте значки: в «Get Value for Repeat Item in Dictionary» и в «Find Photos where Name begins with Repeat Item 2» у Repeat Item должны быть серые стрелки. Без значка это напечатанные буквы: сотрите их и выберите переменную.'
     + ' Проверочный альбом потом удалите.');
 }
 

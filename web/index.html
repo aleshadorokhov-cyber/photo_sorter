@@ -80,12 +80,12 @@
           <li>В нём нажмите синее слово <b>Value</b> и выберите <b>All Keys</b>. Если последнее синее слово не Dictionary, нажмите его и выберите <b>Dictionary</b> с оранжевой книжкой. Должно читаться «Get <b>All Keys</b> in <b>Dictionary</b>».</li>
           <li>В первом «Repeat with each item in» нажмите <b>Dictionary</b> и выберите <b>Dictionary Value</b>.</li>
         </ol>
-        <p>Если альбом назван верно, но пустой:</p>
+        <p>Если альбом назван верно, но пустой, почти всегда где-то напечатано слово вместо выбранной переменной:</p>
         <ol>
-          <li>В настройках iPhone: <b>Settings → Privacy &amp; Security → Photos → Shortcuts</b>, выберите <b>Full Access</b>. С ограниченным доступом команда не видит снимки.</li>
-          <li>В <b>Find Photos</b> нажмите <b>is</b> и выберите <b>begins with</b>.</li>
+          <li>В «Get Value for <b>Repeat Item</b> in Dictionary» у Repeat Item должен быть значок серых стрелок. Если значка нет, нажмите Repeat Item, сотрите текст и выберите <b>Repeat Item</b> в строке над клавиатурой. Если его там нет, нажмите <b>Select Variable</b> и коснитесь верхнего «Repeat with each item in Dictionary Value».</li>
+          <li>В «Find Photos where Name begins with <b>Repeat Item 2</b>» то же самое: нужен значок стрелок. Без значка сотрите и выберите <b>Repeat Item 2</b>, через Select Variable это второй, нижний «Repeat with each…».</li>
+          <li>В <b>Find Photos</b> должно стоять <b>begins with</b>, а не is. Если при запуске iPhone спросит доступ к фото, разрешите.</li>
         </ol>
-        <p>Если и после этого альбом пустой, проверьте поиск по имени отдельно: в Shortcuts нажмите «+», добавьте <b>Find Photos</b>, нажмите <b>Add Filter</b>, поменяйте <b>Album</b> на <b>Name</b>, <b>is</b> на <b>begins with</b> и в поле напечатайте имя снимка из заметки выше, например <kbd>IMG_4520</kbd>. Нажмите ▶ внизу и, если iPhone спросит, разрешите доступ к фото. Под действием появится снимок или пустой результат: пришлите снимок экрана в чат.</p>
         <p>Остальное не трогайте и снова нажмите проверку на одном снимке.</p>
       </div>
 
@@ -103,7 +103,7 @@
           <p>Поиск: <kbd>repeat</kbd>. В списке нажмите <b>Repeat with Each</b>, не просто Repeat.</p><p>В команде появятся две строки: «Repeat with each item in <b>Dictionary Value</b>» и ниже <b>End Repeat</b>. Если синее слово другое, нажмите его и выберите <b>Dictionary Value</b>.</p></li>
         <li><b>Get Dictionary Value</b>, второй раз
           <p>Поиск: <kbd>get dictionary</kbd>, снова <b>Get Dictionary Value</b>. Оно встанет под End Repeat: перетащите его выше, между «Repeat with each…» и «End Repeat».</p>
-          <p>Здесь синее слово <b>Value</b> оставьте. Нажмите <b>Key</b> и выберите <b>Repeat Item</b>. Нажмите последнее синее слово и выберите <b>Dictionary</b> с оранжевой книжкой. В команде должно читаться «Get Value for <b>Repeat Item</b> in <b>Dictionary</b>».</p></li>
+          <p>Здесь синее слово <b>Value</b> оставьте. Нажмите <b>Key</b> и выберите <b>Repeat Item</b> в строке над клавиатурой; если его там нет, нажмите <b>Select Variable</b> и коснитесь «Repeat with each…» над этим действием. У Repeat Item должен появиться значок серых стрелок: без значка это просто напечатанные буквы, и альбом выйдет пустым. Нажмите последнее синее слово и выберите <b>Dictionary</b> с оранжевой книжкой. В команде должно читаться «Get Value for <b>Repeat Item</b> in <b>Dictionary</b>».</p></li>
         <li><b>Repeat with Each</b>, второй раз
           <p>Поиск: <kbd>repeat</kbd>. В списке снова нажмите <b>Repeat with Each</b>. Он встанет в самый низ. Зажмите его верхнюю строку «Repeat with each…» и перетащите сразу под «Get Value for…»: блок переедет вместе со своим End Repeat.</p>
           <p>Нажмите бледное слово <b>Items</b>, затем <b>Select Variable</b>, и нажмите на действие «Get Value for Repeat Item in Dictionary» прямо над ним. В команде должно читаться «Repeat with each item in <b>Dictionary Value</b>».</p></li>
