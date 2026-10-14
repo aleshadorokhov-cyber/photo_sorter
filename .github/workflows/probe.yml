@@ -9,6 +9,7 @@ jobs:
       - name: Версии
         run: sw_vers; which shortcuts; shortcuts --help 2>&1 | head -30; shortcuts sign --help 2>&1 | head -30
       - name: Действия Фото (App Intents)
+        continue-on-error: true
         run: |
           for app in /System/Applications/Photos.app; do
             find "$app" -name "*.actionsdata" -o -name "*.appintents" | head
@@ -26,6 +27,7 @@ jobs:
               print(name, '|', title, '|', json.dumps(params, ensure_ascii=False)[:600])
           PY
       - name: Подробно про альбомы
+        continue-on-error: true
         run: |
           F=$(find /System/Applications/Photos.app -name "extract.actionsdata" | head -1)
           python3 - "$F" <<'PY'
@@ -42,8 +44,10 @@ jobs:
                   print('=====', k); print(json.dumps(ents[k], ensure_ascii=False)[:3000])
           PY
       - name: Старые действия WorkflowKit
+        continue-on-error: true
         run: |
-          P=$(find /System/Library/PrivateFrameworks/WorkflowKit.framework -name "WFActions.plist" 2>/dev/null | head -1)
+          find /System/Library/PrivateFrameworks /System/Library/Frameworks -maxdepth 6 -iname '*WFActions*' 2>/dev/null | head; find /System/Library/PrivateFrameworks -maxdepth 5 -iname '*.plist' -path '*Workflow*' 2>/dev/null | head -20; find /System/Library/PrivateFrameworks -maxdepth 5 -iname '*.plist' -path '*ActionKit*' 2>/dev/null | head -20
+          P=$(find /System/Library/PrivateFrameworks -maxdepth 7 -name "WFActions.plist" 2>/dev/null | head -1)
           echo "plist: $P"
           plutil -convert json -o /tmp/wfactions.json "$P"
           python3 - <<'PY'
@@ -55,6 +59,7 @@ jobs:
                   print(json.dumps({x: v[x] for x in v if x in ('Parameters', 'Input', 'Output', 'ParameterSummary')}, ensure_ascii=False, default=str)[:2500])
           PY
       - name: Свойства фото для фильтра
+        continue-on-error: true
         run: |
           grep -rl "WFPhotoMediaContentItem\|WFAssetContentItem" /System/Library/PrivateFrameworks/ContentKit.framework 2>/dev/null | head
           strings /System/Library/PrivateFrameworks/ContentKit.framework/Versions/A/ContentKit 2>/dev/null | grep -i -E "^(Date Taken|Creation Date|Album|Name|File Name|Is a Screenshot)$" | sort -u | head -20
