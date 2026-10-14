@@ -601,6 +601,7 @@ const NAME_KEY = 'shortcut-name';
 // Ссылки iCloud на готовые команды («Поделиться» → «Скопировать ссылку iCloud»).
 // Пока ссылки пустые, на странице остаются только шаги ручной сборки
 const SHORTCUT_LINKS = {
+  one: '',
   main: '',
   add: '',
   remove: '',
@@ -614,6 +615,8 @@ function setupInstall() {
   }
   if (!Object.values(SHORTCUT_LINKS).some(Boolean)) return;
   $('#install').hidden = false;
+  // Кто ставит готовые команды, получает и «Разложить по полочкам», так что сразу одна кнопка
+  $('#install-one').addEventListener('click', () => setOneMode(true));
   $('#shortcut-help summary').textContent = 'Если установка не сработала: собрать команды вручную';
 }
 
@@ -695,6 +698,58 @@ function setupRemoveSource() {
   });
 }
 
+// Одна кнопка: команда «Разложить по полочкам» сама по очереди зовёт три команды выше,
+// каждой кладя в буфер её часть раскладки. Пока её не проверили, кнопка запускает три команды
+// по одной, как раньше, чтобы у тех, кто её ещё не собрал, ничего не сломалось
+const ONE_NAME = 'Разложить по полочкам';
+const ONE_KEY = 'one-shortcut';
+const ONE_TEST_ALBUM = 'Проверка одной кнопки';
+let one = false;
+
+function oneMode() {
+  return one;
+}
+
+function setOneMode(on) {
+  one = on;
+  try {
+    if (on) localStorage.setItem(ONE_KEY, '1');
+    else localStorage.removeItem(ONE_KEY);
+  } catch { /* не запомнилось: в следующий раз включите заново */ }
+  applyMode();
+  resetSteps();
+}
+
+function applyMode() {
+  $('#use-one').hidden = one;
+  $('#use-three').hidden = !one;
+  $('#one-intro').hidden = one;
+  setText($('#one-summary'), one ? `Команда «${ONE_NAME}»` : 'Одна кнопка вместо трёх');
+}
+
+function setupMode() {
+  try {
+    one = localStorage.getItem(ONE_KEY) === '1';
+  } catch { /* без хранилища остаются три команды по очереди */ }
+  $('#use-one').addEventListener('click', () => {
+    setOneMode(true);
+    $('#one-setup').open = false;
+    $('#albums-note').textContent = 'Готово: теперь кнопка «Разложить по альбомам» делает всё за один запуск.';
+  });
+  $('#use-three').addEventListener('click', () => setOneMode(false));
+  applyMode();
+}
+
+// Раздел раскладки лежит строкой: ровно то, что раньше уходило в буфер для своей команды.
+// «Разложить по полочкам» копирует его в буфер как есть, и команда читает его как обычно
+function onePayload(steps, plan) {
+  const part = (kind) => {
+    const step = steps.find((s) => s.kind === kind);
+    return JSON.stringify((step && stepPayload(step, plan)) || {});
+  };
+  return { убрать: part('remove'), создать: part('create'), добавить: part('add') };
+}
+
 // Альбомы, которые уже есть в «Фото». Названия берутся из постоянного списка категорий,
 // поэтому при следующей сортировке они совпадут, и снимки лягут в те же альбомы
 const MADE_KEY = 'albums-made';
@@ -741,10 +796,11 @@ function stepPayload(step, plan) {
 }
 
 function stepButton(step) {
+  if (oneMode()) return removeEnabled() ? 'Убрать из старого альбома и разложить' : 'Разложить по альбомам';
   if (step?.kind === 'add') return 'Доложить в альбомы, которые уже есть';
-  if (step?.kind === 'create') return 'Разложить по альбомам в «Фото»';
+  if (step?.kind === 'create') return 'Разложить по альбомам';
   if (step?.kind === 'remove') return 'Убрать снимки из старого альбома';
-  return removeEnabled() ? 'Убрать из старого альбома и разложить' : 'Разложить по альбомам в «Фото»';
+  return removeEnabled() ? 'Убрать из старого альбома и разложить' : 'Разложить по альбомам';
 }
 
 function resetSteps() {
@@ -752,8 +808,8 @@ function resetSteps() {
   renderAlbums();
 }
 
-// Кладёт раскладку в буфер обмена и запускает команду
-async function runShortcut(plan, name, message) {
+// Кладёт раскладку в буфер обмена и запускает команду. help: какие шаги раскрыть к возвращению
+async function runShortcut(plan, name, message, help = null) {
   const note = $('#albums-note');
   try {
     await navigator.clipboard.writeText(JSON.stringify(plan));
@@ -762,9 +818,9 @@ async function runShortcut(plan, name, message) {
     return false;
   }
   note.textContent = `${message} Открываю команду «${name}». Если Shortcuts пишут, что её нет (Could not find the shortcut),`
-    + ' сначала соберите её по шагам ниже или впишите там точное имя первой команды.';
+    + ' сначала соберите её по шагам ниже.';
   // Шаги остаются открытыми, когда вы вернётесь из Shortcuts
-  $('#shortcut-help').open = true;
+  if (help) help.open = true;
   location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}`;
   return true;
 }
@@ -781,6 +837,10 @@ async function toAlbums() {
   const { plan, albums, skipped, examples } = albumPlan();
   if (!albums) {
     $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    return;
+  }
+  if (oneMode()) {
+    await toAlbumsOnce(plan, skipped);
     return;
   }
   if (!pending.length) pending = planSteps(plan);
@@ -816,6 +876,45 @@ async function toAlbums() {
   renderAlbums();
 }
 
+// Всё за один запуск «Разложить по полочкам»
+async function toAlbumsOnce(plan, skipped) {
+  const steps = planSteps(plan);
+  const fresh = steps.find((step) => step.kind === 'create')?.albums ?? new Set();
+  const { albums, photos } = sizeOf(plan);
+  const lost = skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : '';
+  const ask = removeEnabled()
+    ? ' Сначала iPhone спросит, из какого альбома убрать снимки: нажмите его в списке. Из «Фото» они не удаляются.' : '';
+  const ok = await runShortcut(onePayload(steps, plan), ONE_NAME,
+    `Раскладываю ${photos} фото по альбомам: ${albums}` + (fresh.size ? `, из них новых ${fresh.size}.` : '.') + ask + lost);
+  if (ok && fresh.size) {
+    const made = madeAlbums();
+    for (const album of fresh) made.add(album);
+    saveMadeAlbums(made);
+  }
+  renderAlbums();
+}
+
+// Проверка одной кнопки: первый снимок создаёт альбом, второй докладывается в него в том же запуске
+async function testOne() {
+  const { examples } = albumPlan();
+  if (!examples.length) {
+    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    return;
+  }
+  const [first, second = first] = examples;
+  const payload = {
+    убрать: '{}',
+    создать: JSON.stringify({ [ONE_TEST_ALBUM]: [first] }),
+    добавить: JSON.stringify({ [ONE_TEST_ALBUM]: [second] }),
+  };
+  await runShortcut(payload, ONE_NAME,
+    `Проверка: в «Фото» должен появиться альбом «${ONE_TEST_ALBUM}»`
+    + (second === first ? ` со снимком ${first}.` : ` с двумя снимками, ${first} и ${second}.`)
+    + ' Если снимок в нём один, в шаге 9 у Get Value последним словом должно стоять Dictionary, а не Shortcut Result.'
+    + ' Если альбома нет совсем, проверьте то же в шаге 7, а если там верно, пришлите в чат снимок экрана команды. Проверочный альбом потом удалите.',
+    $('#one-setup'));
+}
+
 const TEST_ALBUM = 'Проверка По полочкам';
 
 // Один альбом с одним снимком: по нему видно, правильно ли собрана команда
@@ -831,7 +930,7 @@ async function testShortcut() {
     + ' Если альбом назван длинной строкой со скобками, в команде не хватает действия «Get All Keys in Dictionary» (как добавить, написано в начале шагов ниже) или в Create Photo Album выбрано не Repeat Item.'
     + ' Если альбом пустой, проверьте значки: в «Get Value for Repeat Item in Dictionary» и в «Find Photos where Name begins with Repeat Item 2» у Repeat Item должны быть серые стрелки. Без значка это напечатанные буквы: сотрите их и выберите переменную.'
     + ' Если в альбоме белая картинка с именем снимка, действие читается «Filter … where» вместо «Find Photos where»: нажмите плашку Repeat Item 2 после Filter и выберите Clear, а картинку удалите.'
-    + ' Проверочный альбом потом удалите.');
+    + ' Проверочный альбом потом удалите.', $('#shortcut-help'));
 }
 
 // Второй снимок в тот же проверочный альбом: так видно, что вторая команда докладывает, а не копирует
@@ -846,7 +945,8 @@ async function testAddShortcut() {
     `Проверка добавления. Альбом «${TEST_ALBUM}» уже должен быть после обычной проверки, со снимком ${first}.`
     + (second === first ? ' Снимок добавится тот же, в альбоме останется один.' : ` Теперь в нём должно стать два снимка: ${first} и ${second}.`)
     + ' В «Недавних» не должно появиться новых снимков с сегодняшней датой. Если появилась копия, удалите её и напишите в чат.'
-    + ' Если альбом пустой или Shortcuts пишут, что не нашли альбом, пришлите снимок экрана команды. Проверочный альбом потом удалите.');
+    + ' Если альбом пустой или Shortcuts пишут, что не нашли альбом, пришлите снимок экрана команды. Проверочный альбом потом удалите.',
+    $('#shortcut-help'));
 }
 
 // Третья команда на том же проверочном альбоме: первый снимок уходит из альбома, но остаётся в «Фото»
@@ -860,7 +960,8 @@ async function testRemoveShortcut() {
   await runShortcut({ [SOURCE_LABEL]: [first] }, removeShortcutName(),
     `Проверка третьей команды. iPhone спросит альбом: выберите «${TEST_ALBUM}».`
     + ` Из него должен пропасть снимок ${first}, а сам снимок должен остаться в Recents.`
-    + ' Альбом «Проверка По полочкам» появляется после двух проверок выше. Проверочный альбом потом удалите.');
+    + ' Альбом «Проверка По полочкам» появляется после двух проверок выше. Проверочный альбом потом удалите.',
+    $('#shortcut-help'));
 }
 
 // Галочки «альбом уже есть»: по ним кнопка решает, создать альбом или доложить в него
@@ -874,8 +975,9 @@ function renderAlbums() {
   setText($('#to-albums'), stepButton(pending[0]));
   if (key === albumsKey) return;
   albumsKey = key;
+  $('#album-head').hidden = !albums.length;
   $('#album-list').replaceChildren(...albums.map((album) => {
-    const box = el('input', { type: 'checkbox', checked: made.has(album) });
+    const box = el('input', { type: 'checkbox', className: 'switch', checked: made.has(album), ariaLabel: `${album}: уже есть в «Фото»` });
     box.addEventListener('change', () => {
       const current = madeAlbums();
       if (box.checked) current.add(album);
@@ -883,7 +985,11 @@ function renderAlbums() {
       saveMadeAlbums(current);
       resetSteps();
     });
-    return el('label', { className: 'album-row' }, [box, el('span', {}, album), el('span', { className: 'muted' }, String(plan[album].length))]);
+    return el('label', { className: 'album-row' }, [
+      el('span', { className: 'album-name' }, album.replace(/^Сортировка: /, '')),
+      el('span', { className: 'count' }, String(plan[album].length)),
+      box,
+    ]);
   }));
 }
 
@@ -950,6 +1056,8 @@ function groupView(id) {
   const existing = view.groups.get(id);
   if (existing) return existing;
   const details = el('details', { class: 'group' });
+  // У каждой полки свой цвет, постоянный для категории
+  details.style.setProperty('--hue', String([...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)));
   const name = el('span', { class: 'group-name' });
   const count = el('span', { class: 'group-count' });
   const strip = el('span', { class: 'strip' });
@@ -980,10 +1088,10 @@ function render() {
   $('#summary-row').hidden = state.photos.length === 0;
   $('#save-all').disabled = state.busy || list.length === 0;
   $('#albums').hidden = list.length === 0;
-  $('#to-albums').disabled = state.busy;
-  $('#test-albums').disabled = state.busy;
-  $('#test-add').disabled = state.busy;
-  $('#test-remove').disabled = state.busy;
+  for (const button of document.querySelectorAll('#to-albums, #test-one, #test-albums, #test-add, #test-remove')) {
+    button.disabled = state.busy;
+  }
+  $('#stages').dataset.stage = !state.photos.length ? '1' : state.busy ? '2' : '3';
   if (list.length) renderAlbums();
   setText($('#summary'), state.photos.length
     ? `${state.photos.length} фото, категорий: ${list.length}` + (failed ? `. Не удалось открыть: ${failed}` : '')
@@ -1124,6 +1232,8 @@ $('#to-albums').addEventListener('click', toAlbums);
 $('#test-albums').addEventListener('click', testShortcut);
 $('#test-add').addEventListener('click', testAddShortcut);
 $('#test-remove').addEventListener('click', testRemoveShortcut);
+$('#test-one').addEventListener('click', testOne);
+setupMode();
 setupRemoveSource();
 setupShortcutName();
 setupInstall();

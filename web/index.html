@@ -4,26 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#2f5bd3">
+<meta name="theme-color" content="#f6efe3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16120e" media="(prefers-color-scheme: dark)">
 <title>По полочкам</title>
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <img src="icon.png" alt="" class="logo">
-  <div>
-    <h1>По полочкам</h1>
-    <p class="muted">Фото разбираются прямо на телефоне и никуда не отправляются.</p>
+<header class="hero">
+  <div class="hero-top">
+    <img src="icon.png" alt="" class="logo">
+    <div>
+      <h1>По полочкам</h1>
+      <p class="tagline">Разбирает снимки по категориям прямо в Safari. Фото не покидают телефон.</p>
+    </div>
   </div>
+  <div class="shelf-art" aria-hidden="true">
+    <div class="plank"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="plank"><i></i><i></i><i></i><i></i></div>
+  </div>
+  <ol id="stages" class="stages" data-stage="1">
+    <li>Выбрать</li>
+    <li>Разобрать</li>
+    <li>Разложить</li>
+  </ol>
 </header>
 
 <main>
-  <section id="intro" class="card">
+  <section id="intro" class="card intro">
     <p>Выберите фото, и приложение разложит их по категориям: внутри от новых к старым, с именем вида «2026-07-23 Пятигорск, Белка». Текст на фото оно прочитает и определит его тему.</p>
     <p class="muted" id="sizes">Загружаю…</p>
-    <button id="pick" class="primary" data-pick disabled>Выбрать фото</button>
+    <button id="pick" class="primary cta" data-pick disabled>Выбрать фото</button>
     <p class="muted credits">Модели: OpenCLIP (MIT), EmbeddingGemma (Gemma Terms of Use), Tesseract (Apache 2.0). Города: GeoNames, CC BY 4.0.</p>
   </section>
 
@@ -52,24 +64,60 @@
   <section id="groups"></section>
 
   <section id="albums" class="card albums" hidden>
-    <p><b>Альбомы в «Фото».</b> Команда на iPhone создаст по альбому «Сортировка: …» на каждую категорию и добавит в него эти же снимки из вашей галереи, без копий. Перед первым разом один раз поставьте команды и проверьте их на одном снимке. Запускайте команды только этой кнопкой: из приложения Shortcuts они возьмут то, что лежит в буфере обмена.</p>
+    <h2>Разложить в «Фото»</h2>
+    <p class="muted">По альбому «Сортировка: …» на категорию. В альбомы попадают ваши же снимки из галереи, без копий.</p>
     <div id="install" class="install" hidden>
-      <a id="install-main" class="primary button" href="#">Установить «По полочкам»</a>
-      <a id="install-add" class="primary button" href="#">Установить «По полочкам добавить»</a>
-      <a id="install-remove" class="primary button" href="#">Установить «По полочкам убрать»</a>
-      <p class="muted">Откроется Shortcuts: нажмите <b>Add Shortcut</b>, затем вернитесь сюда за следующей. Не переименовывайте команды: сайт запускает их по имени. Если такие команды у вас уже есть, сначала удалите старые, иначе новые получат имя с цифрой. При первом запуске iPhone спросит доступ к буферу обмена и к «Фото»: нажмите <b>Allow</b>, а для «Фото» выберите полный доступ.</p>
+      <a id="install-one" class="primary button" href="#">Установить «Разложить по полочкам»</a>
+      <a id="install-main" class="secondary button" href="#">Установить «По полочкам»</a>
+      <a id="install-add" class="secondary button" href="#">Установить «По полочкам добавить»</a>
+      <a id="install-remove" class="secondary button" href="#">Установить «По полочкам убрать»</a>
+      <p class="muted">Откроется Shortcuts: нажмите <b>Add Shortcut</b> и вернитесь сюда за следующей. Не переименовывайте команды: сайт и первая команда зовут остальные по имени. При первом запуске разрешите доступ к буферу обмена и полный доступ к «Фото».</p>
     </div>
-    <p class="muted">Галочка: альбом уже есть в «Фото», новые снимки лягут в него, второй такой же не появится. Без галочки альбом будет создан. Сайт ставит галочки сам после создания; если альбомы уже были, отметьте их.</p>
+    <div class="album-head" id="album-head"><span>Альбом</span><span>уже есть</span></div>
     <div id="album-list" class="album-list"></div>
-    <label class="check-row"><input id="remove-source" type="checkbox"> <span>Убрать снимки из альбома, откуда их брали</span></label>
-    <p class="muted">Первой запустится команда «По полочкам убрать», и iPhone спросит, из какого альбома: нажмите его в списке. Из «Фото» снимки не удаляются, они остаются в альбомах «Сортировка: …» и в Recents. Снимите галочку, если брали из Recents или хотите оставить снимки и в старом альбоме.</p>
-    <button id="to-albums" class="secondary">Разложить по альбомам в «Фото»</button>
-    <button id="test-albums" class="link">Сначала проверить команду на одном снимке</button>
-    <button id="test-add" class="link">Потом проверить, что вторая команда докладывает в альбом</button>
-    <button id="test-remove" class="link">И что третья убирает снимок из альбома</button>
+    <label class="switch-row"><span><b>Убрать из альбома, откуда брали</b><small>iPhone спросит, из какого. Из «Фото» ничего не удаляется. Не включайте, если брали из Recents.</small></span><input id="remove-source" type="checkbox" class="switch"></label>
+    <button id="to-albums" class="primary cta">Разложить по альбомам</button>
     <p id="albums-note" class="muted"></p>
+
+    <details id="one-setup" class="help one-setup">
+      <summary id="one-summary">Одна кнопка вместо трёх</summary>
+      <div id="one-intro">
+        <p>Сейчас кнопка выше запускает три команды по очереди, и после каждой нужно возвращаться сюда. Соберите четвёртую, короткую команду <b>Разложить по полочкам</b>: она сама вызовет ваши три, и всё сделается за одно нажатие. Три готовые команды не трогайте и не переименовывайте.</p>
+      </div>
+      <ol class="steps">
+        <li>В Shortcuts на вкладке <b>Shortcuts</b> нажмите «+» справа вверху. Нажмите <b>New Shortcut</b> вверху, затем <b>Rename</b>, введите <b>Разложить по полочкам</b> и <b>Done</b>.</li>
+        <li>Поиск внизу: <kbd>clipboard</kbd>, нажмите <b>Get Clipboard</b>.</li>
+        <li>Поиск: <kbd>get dictionary</kbd>, нажмите <b>Get Dictionary from Input</b>. Должно читаться «Get dictionary from <b>Clipboard</b>».</li>
+        <li>Поиск: <kbd>get dictionary</kbd>, нажмите <b>Get Dictionary Value</b> (оранжевая книжка). Нажмите <b>Key</b> и напечатайте <b>убрать</b>. Здесь печатать можно: это просто слово. Должно читаться «Get Value for убрать in <b>Dictionary</b>».</li>
+        <li>Поиск: <kbd>copy</kbd>, нажмите <b>Copy to Clipboard</b>. Читается «Copy <b>Dictionary Value</b> to clipboard».</li>
+        <li>Поиск: <kbd>run shortcut</kbd>, нажмите <b>Run Shortcut</b>. Нажмите синее <b>Shortcut</b> и выберите в списке <b>По полочкам убрать</b>.</li>
+        <li>Снова <b>Get Dictionary Value</b>, Key: <b>создать</b>. Последнее синее слово здесь будет Shortcut Result: нажмите его и выберите <b>Dictionary</b> с оранжевой книжкой; если его нет в строке над клавиатурой, нажмите <b>Select Variable</b> и коснитесь «Get dictionary from Clipboard». Должно читаться «Get Value for создать in <b>Dictionary</b>».</li>
+        <li>Снова <b>Copy to Clipboard</b>, затем <b>Run Shortcut</b> с командой <b>По полочкам</b>.</li>
+        <li>Снова <b>Get Dictionary Value</b>, Key: <b>добавить</b>, и так же выберите <b>Dictionary</b> вместо Shortcut Result.</li>
+        <li>Снова <b>Copy to Clipboard</b>, затем <b>Run Shortcut</b> с командой <b>По полочкам добавить</b>. Нажмите <b>Done</b>.</li>
+      </ol>
+      <p>Должно получиться так:</p>
+      <div class="recipe">
+        <div>Get Clipboard</div>
+        <div>Get dictionary from Clipboard</div>
+        <div>Get Value for убрать in Dictionary</div>
+        <div>Copy Dictionary Value to clipboard</div>
+        <div>Run По полочкам убрать</div>
+        <div>Get Value for создать in Dictionary</div>
+        <div>Copy Dictionary Value to clipboard</div>
+        <div>Run По полочкам</div>
+        <div>Get Value for добавить in Dictionary</div>
+        <div>Copy Dictionary Value to clipboard</div>
+        <div>Run По полочкам добавить</div>
+      </div>
+      <p>Проверка за одно нажатие: команда создаст альбом «Проверка одной кнопки» с одним снимком и тут же доложит в него второй. Если iPhone спросит, можно ли одной команде запускать другие, разрешите.</p>
+      <button id="test-one" class="secondary">Проверить на двух снимках</button>
+      <button id="use-one" class="primary">В альбоме два снимка: включить одну кнопку</button>
+      <button id="use-three" class="link" hidden>Вернуться к трём командам по очереди</button>
+    </details>
+
     <details id="shortcut-help" class="help">
-      <summary>Как один раз настроить команду</summary>
+      <summary>Первые три команды: как собрать и проверить</summary>
       <p>Названия даны как на iPhone с английским языком. Займёт минут десять, потом команда просто запускается этой кнопкой.</p>
       <a class="secondary button" href="shortcuts://create-shortcut">Открыть новую команду в Shortcuts</a>
       <p class="muted">Или сами: приложение Shortcuts, вкладка <b>Library</b>, «+» справа вверху.</p>
@@ -150,7 +198,8 @@
       <label class="shortcut-name">Имя команды на iPhone, если назвали иначе
         <input id="shortcut-name" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="По полочкам">
       </label>
-      <p>Потом здесь нажмите «Сначала проверить команду на одном снимке» и разрешите команде доступ к буферу обмена и к «Фото». Если в «Фото» появился альбом «Проверка По полочкам» с одним снимком, всё собрано верно: удалите его и нажмите «Разложить по альбомам в «Фото»».</p>
+      <p>Потом нажмите проверку ниже и разрешите команде доступ к буферу обмена и к «Фото». Если в «Фото» появился альбом «Проверка По полочкам» с одним снимком, всё собрано верно.</p>
+      <button id="test-albums" class="secondary">Проверить первую команду на одном снимке</button>
       <h3 id="add-shortcut">Вторая команда: докладывать в альбомы, которые уже есть</h3>
       <p>Нужна, чтобы новые снимки ложились в уже созданные «Сортировка: …», а не во вторые альбомы с тем же названием. Это копия первой команды, в которой поменяно одно действие. Первую команду не трогайте.</p>
       <ol class="steps">
@@ -162,10 +211,11 @@
         <li>В нём нажмите первую синюю плашку, выберите <b>Clear</b>, нажмите пустое поле, затем <b>Select Variable</b> и коснитесь <b>End Repeat</b> прямо над этим действием. Появится <b>Repeat Results</b>.</li>
         <li>Нажмите <b>Recents</b> и выберите <b>Repeat Item</b> со значком стрелок; если его нет в списке, нажмите <b>Select Variable</b> и коснитесь самого верхнего «Repeat with each». Должно читаться «Save <b>Repeat Results</b> to <b>Repeat Item</b>».</li>
       </ol>
-      <p>Проверка: сначала нажмите «Сначала проверить команду на одном снимке», чтобы появился альбом «Проверка По полочкам», потом «Потом проверить, что вторая команда докладывает в альбом». В альбоме должно стать два снимка, а в «Недавних» не должно появиться копий.</p>
+      <p>Проверка: после проверки первой команды нажмите кнопку ниже. В альбоме «Проверка По полочкам» должно стать два снимка, а в «Недавних» не должно появиться копий.</p>
+      <button id="test-add" class="secondary">Проверить вторую команду</button>
 
       <h3 id="remove-shortcut">Третья команда: убирать снимки из альбома, откуда их брали</h3>
-      <p>Нужна, только если стоит галочка «Убрать снимки из альбома, откуда их брали». Это ещё одна копия, в которой поменяно одно действие.</p>
+      <p>Нужна, только если включено «Убрать из альбома, откуда брали». Это ещё одна копия, в которой поменяно одно действие.</p>
       <ol class="steps">
         <li>Нажмите и подержите плитку «По полочкам добавить», выберите <b>Duplicate</b>, затем у копии <b>Rename</b>: <b>По полочкам убрать</b>.</li>
         <li>Откройте копию кнопкой <b>⋯</b> и удалите действие «Save Repeat Results to Repeat Item» крестиком справа.</li>
@@ -173,16 +223,17 @@
         <li>Первую синюю плашку: <b>Clear</b>, затем <b>Select Variable</b> и <b>End Repeat</b> прямо над действием, появится <b>Repeat Results</b>.</li>
         <li>Нажмите второе синее слово, альбом, и выберите <b>Ask Each Time</b>. Должно читаться «Remove <b>Repeat Results</b> from <b>Ask Each Time</b>». Так при каждом запуске iPhone покажет список альбомов, и название не придётся вписывать.</li>
       </ol>
-      <p>Проверка: после двух проверок выше нажмите «И что третья убирает снимок из альбома» и в списке выберите «Проверка По полочкам». В альбоме останется один снимок, а убранный должен остаться в Recents.</p>
+      <p>Проверка: после двух проверок выше нажмите кнопку ниже и в списке выберите «Проверка По полочкам». В альбоме останется один снимок, а убранный должен остаться в Recents.</p>
+      <button id="test-remove" class="secondary">Проверить третью команду</button>
 
-      <p class="muted">Снимки ищутся по имени файла: у снимков с камеры это IMG_4184, у сохранённых из приложений бывают имена вроде camphoto_33463914 или длинный набор букв и цифр. Имя видно в «Фото», если открыть снимок и смахнуть вверх. Отредактированные фото приходят с именем FullSizeRender, их команда не найдёт. Если в галерее несколько снимков с одним именем (после IMG_9999 счёт идёт заново), в альбом попадут все они. Сайт помнит, какие альбомы уже создал, и в них докладывает второй командой. Если удалили альбом в «Фото», снимите с него галочку, и он создастся заново. Переименовать сами снимки в «Фото» нельзя: имена вида «2026-07-23 Пятигорск, Белка» есть только у копий в архиве.</p>
+      <p class="muted">Снимки ищутся по имени файла: у снимков с камеры это IMG_4184, у сохранённых из приложений бывают имена вроде camphoto_33463914 или длинный набор букв и цифр. Имя видно в «Фото», если открыть снимок и смахнуть вверх. Отредактированные фото приходят с именем FullSizeRender, их команда не найдёт. Если в галерее несколько снимков с одним именем (после IMG_9999 счёт идёт заново), в альбом попадут все они. Сайт помнит, какие альбомы уже создал, и в них докладывает второй командой. Если удалили альбом в «Фото», выключите у него «уже есть», и он создастся заново. Переименовать сами снимки в «Фото» нельзя: имена вида «2026-07-23 Пятигорск, Белка» есть только у копий в архиве.</p>
     </details>
   </section>
 </main>
 
 <footer id="actions" hidden>
   <button class="secondary" data-pick>Добавить фото</button>
-  <button id="save-all" class="primary">Сохранить всё в «Файлы»</button>
+  <button id="save-all" class="primary">Сохранить в «Файлы»</button>
 </footer>
 
 <input id="files" type="file" accept="image/*" multiple hidden>
