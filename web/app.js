@@ -596,6 +596,27 @@ async function saveZip(list, zipName) {
 // ---------- Альбомы в «Фото» через «Команды» ----------
 
 const SHORTCUT_NAME = 'По полочкам';
+const NAME_KEY = 'shortcut-name';
+
+// Имя команды можно поменять на странице, если на iPhone её назвали иначе
+function shortcutName() {
+  return $('#shortcut-name').value.trim() || SHORTCUT_NAME;
+}
+
+function setupShortcutName() {
+  const input = $('#shortcut-name');
+  try {
+    const saved = localStorage.getItem(NAME_KEY);
+    if (saved) input.value = saved;
+  } catch { /* без хранилища остаётся имя по умолчанию */ }
+  input.addEventListener('change', () => {
+    try {
+      const name = input.value.trim();
+      if (name && name !== SHORTCUT_NAME) localStorage.setItem(NAME_KEY, name);
+      else localStorage.removeItem(NAME_KEY);
+    } catch { /* не сохранилось, но на этот раз имя всё равно возьмётся из поля */ }
+  });
+}
 
 // Имя снимка в «Фото», как его видит действие «Найти фото»: имя файла без расширения
 function libraryName(photo) {
@@ -631,10 +652,14 @@ async function toAlbums() {
     note.textContent = 'Safari не дал скопировать список. Нажмите кнопку ещё раз.';
     return;
   }
+  const name = shortcutName();
   note.textContent = `Скопировал раскладку: альбомов ${albums}, фото ${photos}.`
     + (skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : '')
-    + ` Открываю команду «${SHORTCUT_NAME}»; если она не открылась, запустите её в «Командах» сами.`;
-  location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}`;
+    + ` Открываю команду «${name}». Если Shortcuts пишут, что её нет (Could not find the shortcut),`
+    + ' сначала соберите её по шагам ниже или впишите там её точное имя.';
+  // Шаги остаются открытыми, когда вы вернётесь из Shortcuts
+  $('#shortcut-help').open = true;
+  location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}`;
 }
 
 // ---------- Экран ----------
@@ -867,6 +892,7 @@ for (const button of document.querySelectorAll('[data-pick]')) {
 $('#save-all').addEventListener('click', () => saveZip(groups(), `По полочкам ${isoDate(new Date())}.zip`));
 $('#clear').addEventListener('click', clearAll);
 $('#to-albums').addEventListener('click', toAlbums);
+setupShortcutName();
 $('#photo-close').addEventListener('click', () => $('#photo').close());
 document.addEventListener('visibilitychange', () => { if (state.busy) keepAwake(true); });
 // Без этого Safari на iPhone не подсвечивает нажатую кнопку

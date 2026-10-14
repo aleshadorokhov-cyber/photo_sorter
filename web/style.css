@@ -81,3 +81,12 @@ pre { white-space: pre-wrap; font: 14px/1.4 ui-monospace, Menlo, monospace; back
 .help ol { margin: 0 0 12px; padding-left: 20px; }
 .help li { margin-bottom: 6px; }
 .help p:last-child { margin-bottom: 0; }
+.help .ru { color: var(--muted); font-size: 14px; }
+.help .ru::before { content: "· "; }
+a.button { display: block; text-align: center; text-decoration: none; font-weight: 600; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; }
+a.button:active { filter: brightness(.88); }
+.recipe { font-size: 14px; background: var(--bg); border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; }
+.recipe div { padding: 2px 0; }
+.recipe .inside { margin-left: 4px; padding: 0 0 0 12px; border-left: 2px solid var(--line); }
+.shortcut-name { display: block; font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+.shortcut-name input { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 16px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }

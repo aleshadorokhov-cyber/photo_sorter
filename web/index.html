@@ -51,22 +51,44 @@
   <section id="groups"></section>
 
   <section id="albums" class="card albums" hidden>
-    <p><b>Альбомы в «Фото».</b> Команда на iPhone создаст по альбому «Сортировка: …» на каждую категорию и добавит в него эти же снимки из вашей галереи, без копий.</p>
+    <p><b>Альбомы в «Фото».</b> Команда на iPhone создаст по альбому «Сортировка: …» на каждую категорию и добавит в него эти же снимки из вашей галереи, без копий. Перед первым разом один раз соберите команду по шагам ниже.</p>
     <button id="to-albums" class="secondary">Разложить по альбомам в «Фото»</button>
     <p id="albums-note" class="muted"></p>
-    <details class="help">
+    <details id="shortcut-help" class="help">
       <summary>Как один раз настроить команду</summary>
-      <p>Откройте «Команды», нажмите «+» и назовите команду <b>По полочкам</b>. Добавьте действия по порядку, находя их поиском внизу:</p>
+      <p>Названия действий даны как на iPhone с английским языком, рядом серым по-русски.</p>
+      <a class="secondary button" href="shortcuts://create-shortcut">Открыть новую команду в Shortcuts</a>
       <ol>
-        <li><b>Получить буфер обмена</b>.</li>
-        <li><b>Получить словарь из</b>: входом будет «Буфер обмена».</li>
-        <li><b>Повторить с каждым</b>: подставится «Словарь».</li>
-        <li>Внутрь повтора: <b>Получить значение для</b> ключа «Повторяемый объект» в «Словарь».</li>
-        <li>Под ним, тоже внутри: ещё один <b>Повторить с каждым</b> для «Значение словаря».</li>
-        <li>Внутрь второго повтора: <b>Найти фото</b>. Нажмите «Добавить фильтр», выберите «Имя» «является» и подставьте «Повторяемый объект 2». Включите «Ограничить» и оставьте 1.</li>
-        <li>После «Конец повтора» второго повтора, но внутри первого: <b>Создать фотоальбом</b>. Название: «Повторяемый объект», фото: «Результаты повтора».</li>
+        <li>Нажмите имя сверху (<b>New Shortcut</b>), затем <b>Rename</b>, и впишите <b>По полочкам</b>.</li>
+        <li>В поиске внизу (<b>Search Actions</b>) найдите и добавьте <b>Get Clipboard</b> <span class="ru">Получить буфер обмена</span>.</li>
+        <li><b>Get Dictionary from Input</b> <span class="ru">Получить словарь из</span>. Получится «Get dictionary from Clipboard».</li>
+        <li><b>Repeat with Each</b> <span class="ru">Повторить с каждым</span>. Получится «Repeat with each item in Dictionary» и под ним <b>End Repeat</b>.</li>
+        <li><b>Get Dictionary Value</b> <span class="ru">Получить значение словаря</span>. Перетащите его между Repeat и End Repeat. Нажмите <b>Key</b> и выберите <b>Repeat Item</b>.</li>
+        <li>Ещё один <b>Repeat with Each</b>. Перетащите его под Get Dictionary Value, тоже внутрь первого повтора. Он должен взять <b>Dictionary Value</b>.</li>
+        <li><b>Find Photos</b> <span class="ru">Найти фото</span>. Перетащите внутрь второго повтора. Нажмите <b>Add Filter</b>, затем <b>Album</b> и выберите <b>Name</b>, оставьте <b>is</b>, в поле значения выберите <b>Repeat Item 2</b>. Включите <b>Limit</b> и оставьте <b>1 Photo</b>.</li>
+        <li><b>Create Photo Album</b> <span class="ru">Создать фотоальбом</span>. Перетащите между двумя End Repeat. Имя альбома: <b>Repeat Item</b>, фото: <b>Repeat Results</b>.</li>
       </ol>
-      <p>Потом здесь нажмите «Разложить по альбомам в «Фото»» и разрешите команде открыть «Фото». Сначала попробуйте на нескольких снимках.</p>
+      <p>Должно получиться так, отступ с чертой значит «внутри повтора»:</p>
+      <div class="recipe">
+        <div>Get Clipboard</div>
+        <div>Get dictionary from Clipboard</div>
+        <div>Repeat with each item in Dictionary</div>
+        <div class="inside">
+          <div>Get Value for Repeat Item in Dictionary</div>
+          <div>Repeat with each item in Dictionary Value</div>
+          <div class="inside">
+            <div>Find All Photos where Name is Repeat Item 2, Limit 1 Photo</div>
+          </div>
+          <div>End Repeat</div>
+          <div>Create photo album Repeat Item with Repeat Results</div>
+        </div>
+        <div>End Repeat</div>
+      </div>
+      <p class="muted">Новое действие встаёт в самый низ: зажмите его и перетащите на место. Переменную вроде Repeat Item выбирают в строке над клавиатурой или через <b>Select Variable</b>.</p>
+      <label class="shortcut-name">Имя команды на iPhone, если назвали иначе
+        <input id="shortcut-name" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="По полочкам">
+      </label>
+      <p>Потом здесь нажмите «Разложить по альбомам в «Фото»» и разрешите команде доступ к буферу обмена и к «Фото». Сначала попробуйте на нескольких снимках.</p>
       <p class="muted">Снимки ищутся по имени файла вроде IMG_4184. Отредактированные фото приходят с именем FullSizeRender, их команда не найдёт. Каждый запуск создаёт альбомы заново, поэтому старые «Сортировка: …» перед повтором лучше удалить. Переименовать сами снимки в «Фото» нельзя: имена вида «2026-07-23 Пятигорск, Белка» есть только у копий в архиве.</p>
     </details>
   </section>
