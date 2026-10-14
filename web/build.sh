@@ -22,18 +22,18 @@ cp "$NM"/exifr/dist/lite.esm.mjs "$OUT/vendor/exifr/"
 cp "$NM"/fflate/esm/browser.js "$OUT/vendor/fflate/"
 
 cp "$ROOT/PhotoSorter/Resources/taxonomy.json" "$OUT/models/"
-cp "$MODELS"/{image_encoder.onnx,categories.f32,labels.f32,topics.f32,cities.json} "$OUT/models/"
+cp "$MODELS"/{categories.f32,labels.f32,topics.f32,cities.json} "$OUT/models/"
 
-# EmbeddingGemma больше 100 МБ, а GitHub не принимает такие файлы: режем на части по 45 МБ
+# GitHub не принимает файлы больше 100 МБ, поэтому большие модели лежат частями по 45 МБ
+split -b 45000000 -d -a 2 "$MODELS/image_encoder.onnx" "$OUT/models/image_encoder.part"
 split -b 45000000 -d -a 2 "$MODELS/embedding_gemma.task" "$OUT/models/embedding_gemma.part"
 python3 - "$OUT/models" <<'PY'
 import json, os, sys
 d = sys.argv[1]
-parts = sorted(f for f in os.listdir(d) if f.startswith("embedding_gemma.part"))
-manifest = {
-    "image": {"file": "image_encoder.onnx", "size": os.path.getsize(os.path.join(d, "image_encoder.onnx"))},
-    "topic": {"parts": parts, "size": sum(os.path.getsize(os.path.join(d, p)) for p in parts)},
-}
+def parts(prefix):
+    names = sorted(f for f in os.listdir(d) if f.startswith(prefix + ".part"))
+    return {"parts": names, "size": sum(os.path.getsize(os.path.join(d, n)) for n in names)}
+manifest = {"image": parts("image_encoder"), "topic": parts("embedding_gemma")}
 json.dump(manifest, open(os.path.join(d, "manifest.json"), "w"), indent=1)
 print(json.dumps(manifest))
 PY

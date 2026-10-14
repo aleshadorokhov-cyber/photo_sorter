@@ -6,30 +6,30 @@ ort.env.wasm.numThreads = 1;
 
 let session = null;
 
-async function download(url) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Не удалось скачать модель (${response.status})`);
-  const total = Number(response.headers.get('content-length')) || 0;
-  const reader = response.body.getReader();
-  const chunks = [];
+// Модель лежит частями: склеиваем их в один буфер известного размера
+async function download(urls, size) {
+  const bytes = new Uint8Array(size);
   let loaded = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    loaded += value.length;
-    postMessage({ type: 'progress', loaded, total });
+  for (const url of urls) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Не удалось скачать модель (${response.status})`);
+    const reader = response.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes.set(value, loaded);
+      loaded += value.length;
+      postMessage({ type: 'progress', loaded, total: size });
+    }
   }
-  const bytes = new Uint8Array(loaded);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  if (loaded !== size) throw new Error('Модель скачалась не полностью, обновите страницу');
   return bytes;
 }
 
 onmessage = async ({ data }) => {
   try {
     if (data.type === 'load') {
-      const bytes = await download(data.url);
+      const bytes = await download(data.urls, data.size);
       session = await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] });
       postMessage({ type: 'loaded' });
     } else if (data.type === 'embed') {

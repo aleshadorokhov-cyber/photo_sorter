@@ -242,7 +242,8 @@ class ImageModel {
     this.onProgress = onProgress;
     return new Promise((resolve, reject) => {
       this.loaded = { resolve, reject };
-      this.worker.postMessage({ type: 'load', url: new URL(state.manifest.image.file, MODELS).href });
+      const { parts, size } = state.manifest.image;
+      this.worker.postMessage({ type: 'load', urls: parts.map((p) => new URL(p, MODELS).href), size });
     });
   }
 
