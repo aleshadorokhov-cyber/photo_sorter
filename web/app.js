@@ -643,31 +643,93 @@ function albumPlan() {
   return { plan, albums: Object.keys(plan).length, photos, skipped, examples };
 }
 
+// Вторая команда: та же, но не создаёт альбом, а докладывает снимки в уже существующий
+function addShortcutName() {
+  return `${shortcutName()} добавить`;
+}
+
+// Альбомы, которые уже есть в «Фото». Названия берутся из постоянного списка категорий,
+// поэтому при следующей сортировке они совпадут, и снимки лягут в те же альбомы
+const MADE_KEY = 'albums-made';
+
+function madeAlbums() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(MADE_KEY)) || []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveMadeAlbums(made) {
+  try {
+    localStorage.setItem(MADE_KEY, JSON.stringify([...made]));
+  } catch { /* не запомнилось: в следующий раз галочки придётся поставить заново */ }
+}
+
+// Альбомы, которые ждут второго нажатия: сначала создаются новые, потом докладываются старые
+let pendingAdd = null;
+
 // Кладёт раскладку в буфер обмена и запускает команду
-async function runShortcut(plan, message) {
+async function runShortcut(plan, name, message) {
   const note = $('#albums-note');
   try {
     await navigator.clipboard.writeText(JSON.stringify(plan));
   } catch {
     note.textContent = 'Safari не дал скопировать список. Нажмите кнопку ещё раз.';
-    return;
+    return false;
   }
-  const name = shortcutName();
   note.textContent = `${message} Открываю команду «${name}». Если Shortcuts пишут, что её нет (Could not find the shortcut),`
-    + ' сначала соберите её по шагам ниже или впишите там её точное имя.';
+    + ' сначала соберите её по шагам ниже или впишите там точное имя первой команды.';
   // Шаги остаются открытыми, когда вы вернётесь из Shortcuts
   $('#shortcut-help').open = true;
   location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}`;
+  return true;
+}
+
+function pick(plan, albums) {
+  return Object.fromEntries(Object.entries(plan).filter(([album]) => albums.has(album)));
+}
+
+function sizeOf(plan) {
+  return { albums: Object.keys(plan).length, photos: Object.values(plan).flat().length };
 }
 
 async function toAlbums() {
-  const { plan, albums, photos, skipped, examples } = albumPlan();
+  const { plan, albums, skipped, examples } = albumPlan();
   if (!albums) {
     $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
     return;
   }
-  await runShortcut(plan, `Скопировал раскладку: альбомов ${albums}, фото ${photos}, ищу по именам вроде ${examples.join(', ')}.`
-    + (skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : ''));
+  const lost = skipped ? ` Без имени файла и не попадут в альбомы: ${skipped}.` : '';
+  if (pendingAdd) {
+    const add = pick(plan, pendingAdd);
+    if (Object.keys(add).length) {
+      const size = sizeOf(add);
+      if (await runShortcut(add, addShortcutName(), `Докладываю в альбомы, которые уже есть: альбомов ${size.albums}, фото ${size.photos}.`)) pendingAdd = null;
+      renderAlbums();
+      return;
+    }
+    pendingAdd = null;
+  }
+  const made = madeAlbums();
+  const fresh = pick(plan, new Set(Object.keys(plan).filter((album) => !made.has(album))));
+  const existing = pick(plan, made);
+  if (Object.keys(fresh).length) {
+    const size = sizeOf(fresh);
+    const later = Object.keys(existing).length
+      ? ' Когда вернётесь, нажмите кнопку ещё раз: остальные снимки лягут в альбомы, которые уже есть.' : '';
+    const ok = await runShortcut(fresh, shortcutName(),
+      `Создаю новые альбомы: ${size.albums}, фото ${size.photos}, ищу по именам вроде ${examples.join(', ')}.${lost}${later}`);
+    if (!ok) return;
+    for (const album of Object.keys(fresh)) made.add(album);
+    saveMadeAlbums(made);
+    pendingAdd = later ? new Set(Object.keys(existing)) : null;
+  } else {
+    const size = sizeOf(existing);
+    await runShortcut(existing, addShortcutName(),
+      `Все альбомы уже есть, докладываю в них: альбомов ${size.albums}, фото ${size.photos}.${lost}`);
+  }
+  renderAlbums();
 }
 
 const TEST_ALBUM = 'Проверка По полочкам';
@@ -680,12 +742,52 @@ async function testShortcut() {
     return;
   }
   const photo = examples[0];
-  await runShortcut({ [TEST_ALBUM]: [photo] },
+  await runShortcut({ [TEST_ALBUM]: [photo] }, shortcutName(),
     `Проверка: в «Фото» должен появиться альбом «${TEST_ALBUM}» с одним снимком ${photo}.`
     + ' Если альбом назван длинной строкой со скобками, в команде не хватает действия «Get All Keys in Dictionary» (как добавить, написано в начале шагов ниже) или в Create Photo Album выбрано не Repeat Item.'
     + ' Если альбом пустой, проверьте значки: в «Get Value for Repeat Item in Dictionary» и в «Find Photos where Name begins with Repeat Item 2» у Repeat Item должны быть серые стрелки. Без значка это напечатанные буквы: сотрите их и выберите переменную.'
     + ' Если в альбоме белая картинка с именем снимка, действие читается «Filter … where» вместо «Find Photos where»: нажмите плашку Repeat Item 2 после Filter и выберите Clear, а картинку удалите.'
     + ' Проверочный альбом потом удалите.');
+}
+
+// Второй снимок в тот же проверочный альбом: так видно, что вторая команда докладывает, а не копирует
+async function testAddShortcut() {
+  const { examples } = albumPlan();
+  if (!examples.length) {
+    $('#albums-note').textContent = 'Ни один снимок не найти по имени файла.';
+    return;
+  }
+  const [first, second = first] = examples;
+  await runShortcut({ [TEST_ALBUM]: [second] }, addShortcutName(),
+    `Проверка добавления. Альбом «${TEST_ALBUM}» уже должен быть после обычной проверки, со снимком ${first}.`
+    + (second === first ? ' Снимок добавится тот же, в альбоме останется один.' : ` Теперь в нём должно стать два снимка: ${first} и ${second}.`)
+    + ' В «Недавних» не должно появиться новых снимков с сегодняшней датой. Если появилась копия, удалите её и напишите в чат.'
+    + ' Если альбом пустой или Shortcuts пишут, что не нашли альбом, пришлите снимок экрана команды. Проверочный альбом потом удалите.');
+}
+
+// Галочки «альбом уже есть»: по ним кнопка решает, создать альбом или доложить в него
+let albumsKey = '';
+
+function renderAlbums() {
+  const { plan } = albumPlan();
+  const made = madeAlbums();
+  const albums = Object.keys(plan);
+  const key = JSON.stringify([albums.map((a) => [a, plan[a].length, made.has(a)]), Boolean(pendingAdd)]);
+  setText($('#to-albums'), pendingAdd ? 'Доложить в альбомы, которые уже есть' : 'Разложить по альбомам в «Фото»');
+  if (key === albumsKey) return;
+  albumsKey = key;
+  $('#album-list').replaceChildren(...albums.map((album) => {
+    const box = el('input', { type: 'checkbox', checked: made.has(album) });
+    box.addEventListener('change', () => {
+      const current = madeAlbums();
+      if (box.checked) current.add(album);
+      else current.delete(album);
+      saveMadeAlbums(current);
+      pendingAdd = null;
+      renderAlbums();
+    });
+    return el('label', { className: 'album-row' }, [box, el('span', {}, album), el('span', { className: 'muted' }, String(plan[album].length))]);
+  }));
 }
 
 // ---------- Экран ----------
@@ -783,6 +885,8 @@ function render() {
   $('#albums').hidden = list.length === 0;
   $('#to-albums').disabled = state.busy;
   $('#test-albums').disabled = state.busy;
+  $('#test-add').disabled = state.busy;
+  if (list.length) renderAlbums();
   setText($('#summary'), state.photos.length
     ? `${state.photos.length} фото, категорий: ${list.length}` + (failed ? `. Не удалось открыть: ${failed}` : '')
     : '');
@@ -920,6 +1024,7 @@ $('#save-all').addEventListener('click', () => saveZip(groups(), `По поло�
 $('#clear').addEventListener('click', clearAll);
 $('#to-albums').addEventListener('click', toAlbums);
 $('#test-albums').addEventListener('click', testShortcut);
+$('#test-add').addEventListener('click', testAddShortcut);
 setupShortcutName();
 $('#photo-close').addEventListener('click', () => $('#photo').close());
 document.addEventListener('visibilitychange', () => { if (state.busy) keepAwake(true); });
