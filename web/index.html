@@ -80,6 +80,11 @@
           <li>В нём нажмите синее слово <b>Value</b> и выберите <b>All Keys</b>. Если последнее синее слово не Dictionary, нажмите его и выберите <b>Dictionary</b> с оранжевой книжкой. Должно читаться «Get <b>All Keys</b> in <b>Dictionary</b>».</li>
           <li>В первом «Repeat with each item in» нажмите <b>Dictionary</b> и выберите <b>Dictionary Value</b>.</li>
         </ol>
+        <p>Если альбом назван верно, но пустой:</p>
+        <ol>
+          <li>В настройках iPhone: <b>Settings → Privacy &amp; Security → Photos → Shortcuts</b>, выберите <b>Full Access</b>. С ограниченным доступом команда не видит снимки.</li>
+          <li>В <b>Find Photos</b> нажмите <b>is</b> и выберите <b>begins with</b>.</li>
+        </ol>
         <p>Остальное не трогайте и снова нажмите проверку на одном снимке.</p>
       </div>
 
@@ -103,7 +108,7 @@
           <p>Нажмите бледное слово <b>Items</b>, затем <b>Select Variable</b>, и нажмите на действие «Get Value for Repeat Item in Dictionary» прямо над ним. В команде должно читаться «Repeat with each item in <b>Dictionary Value</b>».</p></li>
         <li><b>Find Photos</b> <span class="ru">Найти фото</span>
           <p>Поиск: <kbd>find photos</kbd>. В списке нажмите <b>Find Photos</b> и перетащите его внутрь второго повтора: под второй «Repeat with each…», выше его End Repeat. Оно сдвинется вправо дважды.</p>
-          <p>Нажмите <b>Add Filter</b>. Появится строка вроде «Album is Recents». Нажмите в ней <b>Album</b> и выберите <b>Name</b>. Слово <b>is</b> оставьте. Нажмите поле справа от is и выберите <b>Repeat Item 2</b>, именно с двойкой и со значком стрелок, не печатайте. В команде должно читаться «Find Photos where Name is <b>Repeat Item 2</b>». Sort by и Limit можно не трогать; если Limit включён с Get 1 Item, это тоже работает.</p></li>
+          <p>Нажмите <b>Add Filter</b>. Появится строка вроде «Album is Recents». Нажмите в ней <b>Album</b> и выберите <b>Name</b>. Нажмите слово <b>is</b> и выберите <b>begins with</b>: в «Фото» имя может храниться с расширением, вроде IMG_4520.HEIC, и точное совпадение его не находит. Нажмите поле справа и выберите <b>Repeat Item 2</b>, именно с двойкой и со значком стрелок, не печатайте. В команде должно читаться «Find Photos where Name begins with <b>Repeat Item 2</b>». Sort by и Limit можно не трогать; если Limit включён с Get 1 Item, это тоже работает.</p></li>
         <li><b>Create Photo Album</b> <span class="ru">Создать фотоальбом</span>
           <p>Поиск: <kbd>album</kbd>. В списке нажмите <b>Create Photo Album</b>. Оно встанет в самый низ: перетащите его между двумя End Repeat, то есть под End Repeat второго повтора и выше самого последнего End Repeat.</p>
           <p>Нажмите синее поле с именем альбома и выберите <b>Repeat Item</b>, без двойки и со значком стрелок, не печатайте. Нажмите синее поле с фото и выберите <b>Repeat Results</b>.</p></li>
@@ -118,7 +123,7 @@
           <div>Get Value for Repeat Item in Dictionary</div>
           <div>Repeat with each item in Dictionary Value</div>
           <div class="inside">
-            <div>Find Photos where Name is Repeat Item 2</div>
+            <div>Find Photos where Name begins with Repeat Item 2</div>
           </div>
           <div>End Repeat</div>
           <div>Create photo album Repeat Item with Repeat Results</div>

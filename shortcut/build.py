@@ -56,7 +56,7 @@ def build():
                        'WFActionParameterFilterPrefix': 1,
                        'WFContentPredicateBoundedDate': False,
                        'WFActionParameterFilterTemplates': [{
-                           'Operator': 4,  # «is»
+                           'Operator': 8,  # «begins with»: имя в «Фото» может быть с расширением
                            'Property': 'Name',
                            'Removable': True,
                            'Values': {'Unit': 4, 'String': text_with('Repeat Item 2')},
