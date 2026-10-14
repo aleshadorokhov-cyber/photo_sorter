@@ -672,9 +672,27 @@ function removeShortcutName() {
   return `${shortcutName()} убрать`;
 }
 
-// Альбом в «Фото», из которого брали снимки. Пусто: снимки остаются там, где были
-function sourceAlbum() {
-  return $('#source-album').value.trim();
+// Убирать ли снимки из альбома, откуда их брали. Сайт этого альбома не знает: его спросит
+// сама третья команда списком альбомов (Ask Each Time), поэтому ключ в раскладке только подпись
+const REMOVE_KEY = 'remove-source';
+const SOURCE_LABEL = 'Альбом, откуда брали снимки';
+
+function removeEnabled() {
+  return $('#remove-source').checked;
+}
+
+function setupRemoveSource() {
+  const box = $('#remove-source');
+  try {
+    box.checked = localStorage.getItem(REMOVE_KEY) === '1';
+  } catch { /* без хранилища галочка просто не запомнится */ }
+  box.addEventListener('change', () => {
+    try {
+      if (box.checked) localStorage.setItem(REMOVE_KEY, '1');
+      else localStorage.removeItem(REMOVE_KEY);
+    } catch { /* не запомнилось, но на этот раз сработает */ }
+    resetSteps();
+  });
 }
 
 // Альбомы, которые уже есть в «Фото». Названия берутся из постоянного списка категорий,
@@ -695,31 +713,28 @@ function saveMadeAlbums(made) {
   } catch { /* не запомнилось: в следующий раз галочки придётся поставить заново */ }
 }
 
-// Шаги раскладки, по одному на нажатие: создать новые альбомы, доложить в старые,
-// убрать снимки из альбома, откуда их брали. Каждый шаг запускает свою команду
+// Шаги раскладки, по одному на нажатие: убрать снимки из альбома, откуда их брали,
+// создать новые альбомы, доложить в старые. Каждый шаг запускает свою команду.
+// «Убрать» идёт первым: если по ошибке выбрать альбом «Сортировка: …», следующие шаги вернут снимки на место
 let pending = [];
 
 function planSteps(plan) {
   const made = madeAlbums();
   const albums = Object.keys(plan);
   const steps = [];
+  if (removeEnabled()) steps.push({ kind: 'remove' });
   const fresh = albums.filter((album) => !made.has(album));
   const existing = albums.filter((album) => made.has(album));
   if (fresh.length) steps.push({ kind: 'create', albums: new Set(fresh) });
   if (existing.length) steps.push({ kind: 'add', albums: new Set(existing) });
-  const source = sourceAlbum();
-  if (source) steps.push({ kind: 'remove', source });
   return steps;
 }
 
-// Что положить в буфер для шага. Для «убрать» это тот же вид раскладки, только альбом один:
-// исходный. Снимки, которые снова попали в этот же альбом, из него не убираются
+// Что положить в буфер для шага. Для «убрать» это та же раскладка, но все снимки под одной подписью
 function stepPayload(step, plan) {
   if (step.kind === 'remove') {
-    const names = [...new Set(Object.entries(plan)
-      .filter(([album]) => album !== step.source)
-      .flatMap(([, list]) => list))];
-    return names.length ? { [step.source]: names } : null;
+    const names = [...new Set(Object.values(plan).flat())];
+    return names.length ? { [SOURCE_LABEL]: names } : null;
   }
   const part = pick(plan, step.albums);
   return Object.keys(part).length ? part : null;
@@ -727,8 +742,9 @@ function stepPayload(step, plan) {
 
 function stepButton(step) {
   if (step?.kind === 'add') return 'Доложить в альбомы, которые уже есть';
-  if (step?.kind === 'remove') return `Убрать снимки из альбома «${step.source}»`;
-  return 'Разложить по альбомам в «Фото»';
+  if (step?.kind === 'create') return 'Разложить по альбомам в «Фото»';
+  if (step?.kind === 'remove') return 'Убрать снимки из старого альбома';
+  return removeEnabled() ? 'Убрать из старого альбома и разложить' : 'Разложить по альбомам в «Фото»';
 }
 
 function resetSteps() {
@@ -793,7 +809,8 @@ async function toAlbums() {
       `Докладываю в альбомы, которые уже есть: альбомов ${size.albums}, фото ${size.photos}.${next}`);
   } else {
     ok = await runShortcut(payload, removeShortcutName(),
-      `Убираю снимки из альбома «${step.source}»: ${size.photos}. Из «Фото» они не удаляются и остаются в альбомах «Сортировка: …».${next}`);
+      `Убираю снимки из альбома, откуда их брали: ${size.photos}. iPhone спросит, из какого альбома: нажмите его в списке.`
+      + ` Из «Фото» снимки не удаляются.${next}`);
   }
   if (ok) pending.shift();
   renderAlbums();
@@ -840,9 +857,10 @@ async function testRemoveShortcut() {
     return;
   }
   const [first] = examples;
-  await runShortcut({ [TEST_ALBUM]: [first] }, removeShortcutName(),
-    `Проверка третьей команды: из альбома «${TEST_ALBUM}» должен пропасть снимок ${first}, а сам снимок должен остаться в Recents.`
-    + ' Если Shortcuts пишут, что не нашли альбом, сначала сделайте две проверки выше. Проверочный альбом потом удалите.');
+  await runShortcut({ [SOURCE_LABEL]: [first] }, removeShortcutName(),
+    `Проверка третьей команды. iPhone спросит альбом: выберите «${TEST_ALBUM}».`
+    + ` Из него должен пропасть снимок ${first}, а сам снимок должен остаться в Recents.`
+    + ' Альбом «Проверка По полочкам» появляется после двух проверок выше. Проверочный альбом потом удалите.');
 }
 
 // Галочки «альбом уже есть»: по ним кнопка решает, создать альбом или доложить в него
@@ -1106,7 +1124,7 @@ $('#to-albums').addEventListener('click', toAlbums);
 $('#test-albums').addEventListener('click', testShortcut);
 $('#test-add').addEventListener('click', testAddShortcut);
 $('#test-remove').addEventListener('click', testRemoveShortcut);
-$('#source-album').addEventListener('input', resetSteps);
+setupRemoveSource();
 setupShortcutName();
 setupInstall();
 $('#photo-close').addEventListener('click', () => $('#photo').close());
