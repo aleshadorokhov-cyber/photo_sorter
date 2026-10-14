@@ -20,7 +20,19 @@
 2. XcodeGen создаёт проект из `project.yml`.
 3. `xcodebuild test` на каждый PR собирает приложение и на симуляторе сверяет модель в Core ML с исходной в PyTorch (`PhotoSorterTests`).
 
+4. Отдельная задача собирает `PhotoSorter.ipa` без подписи. После каждого изменения в `main` она выкладывает .ipa в Releases вместе с `source.json` для SideStore (его делает `sidestore/make_source.py`).
+
 Сборка в TestFlight запускается вручную: Actions, iOS, Run workflow, галочка «Отправить сборку в TestFlight». Для неё нужны секреты репозитория `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` и `APPLE_TEAM_ID`.
+
+## Установка через SideStore
+
+Платный аккаунт Apple для этого не нужен: SideStore подписывает приложение обычным Apple ID. Когда SideStore уже стоит на iPhone, добавьте в нём источник (Sources, «+»):
+
+```
+https://github.com/aleshadorokhov-cyber/photo_sorter/releases/latest/download/source.json
+```
+
+Затем установите «По полочкам» из этого источника. Новые сборки из `main` придут в SideStore как обновления. Подпись бесплатного Apple ID действует 7 дней, её продлевает «Refresh All» в SideStore.
 
 ## Структура
 
@@ -33,5 +45,6 @@ PhotoSorter/
   Resources/  taxonomy.json, иконка
 PhotoSorterTests/  проверка модели на симуляторе
 ml/           подготовка модели для iPhone
+sidestore/    источник для SideStore
 project.yml   описание проекта для XcodeGen
 ```

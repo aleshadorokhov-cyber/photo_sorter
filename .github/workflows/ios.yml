@@ -65,6 +65,84 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" \
             | grep -E "Близость|error:|Test Case|Executed|\*\* (BUILD|TEST)"
 
+  sidestore:
+    name: Сборка .ipa для SideStore
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Модель из кеша
+        id: model-cache
+        uses: actions/cache@v4
+        with:
+          path: PhotoSorter/Generated
+          key: model-${{ hashFiles('ml/**', 'PhotoSorter/Resources/taxonomy.json') }}
+
+      - uses: actions/setup-python@v5
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Подготовить модель для iPhone
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        run: |
+          pip install -r ml/requirements.txt
+          python ml/export_models.py
+
+      - name: Создать проект Xcode
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      # Без подписи: SideStore сам подпишет приложение Apple ID пользователя при установке.
+      - name: Собрать .ipa без подписи
+        run: |
+          xcodebuild build \
+            -project PhotoSorter.xcodeproj \
+            -scheme PhotoSorter \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            -quiet
+          APP="$RUNNER_TEMP/dd/Build/Products/Release-iphoneos/PhotoSorter.app"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/PhotoSorter.ipa" Payload)
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          echo "VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Info.plist")" >> "$GITHUB_ENV"
+          ls -lh PhotoSorter.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PhotoSorter-ipa
+          path: PhotoSorter.ipa
+
+      # Только для main: новая версия появляется в SideStore как обновление.
+      - name: Выложить в Releases и обновить источник SideStore
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD: ${{ github.run_number }}
+        run: |
+          TAG="v$VERSION-$BUILD"
+          URL="https://github.com/${{ github.repository }}/releases/download/$TAG/PhotoSorter.ipa"
+          NOTES=$(git log -1 --format=%s)
+          python3 sidestore/make_source.py --app "$APP" --ipa PhotoSorter.ipa --url "$URL" --notes "$NOTES" --out source.json
+          gh release create "$TAG" PhotoSorter.ipa source.json \
+            --target "$GITHUB_SHA" \
+            --title "По полочкам $VERSION ($BUILD)" \
+            --notes "$NOTES" \
+            --latest
+
   testflight:
     name: Сборка в TestFlight
     needs: build
