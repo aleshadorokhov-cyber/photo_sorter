@@ -11,6 +11,7 @@
   :root { --accent: #5b82f0; --bg: #000000; --card: #1c1c1e; --text: #f2f2f7; --muted: #98989f; --line: #38383a; }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   margin: 0;
   background: var(--bg);
@@ -71,3 +72,8 @@ dd { margin: 0; word-break: break-word; }
 .text summary { color: var(--accent); cursor: pointer; margin-bottom: 8px; }
 pre { white-space: pre-wrap; font: 14px/1.4 ui-monospace, Menlo, monospace; background: var(--bg); padding: 10px; border-radius: 10px; }
 .credits { margin: 12px 0 0; font-size: 12px; }
+.help summary { color: var(--accent); cursor: pointer; font-weight: 600; }
+.help[open] summary { margin-bottom: 10px; }
+.help ol { margin: 0 0 12px; padding-left: 20px; }
+.help li { margin-bottom: 6px; }
+.help p:last-child { margin-bottom: 0; }
