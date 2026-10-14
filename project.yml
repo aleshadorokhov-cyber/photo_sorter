@@ -42,6 +42,9 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSPhotoLibraryUsageDescription: Приложение разбирает фото прямо на телефоне, чтобы разложить их по категориям. Сами фото никуда не отправляются.
+        # Разбор в фоне (BackgroundScan): идентификатор каждого разбора начинается с идентификатора приложения
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).*
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.aleshadorokhov.photosorter

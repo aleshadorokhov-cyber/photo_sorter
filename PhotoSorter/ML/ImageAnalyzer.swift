@@ -21,7 +21,8 @@ final class ImageAnalyzer: @unchecked Sendable {
             throw AppError.missingResource("ImageEncoder.mlmodelc")
         }
         let configuration = MLModelConfiguration()
-        configuration.computeUnits = .all
+        // Без видеокарты: свёрнутому приложению iOS её не даёт, а разбор идёт и в фоне
+        configuration.computeUnits = .cpuAndNeuralEngine
         model = try VNCoreMLModel(for: MLModel(contentsOf: url, configuration: configuration))
         categories = try EmbeddingMatrix(resource: "categories", rows: taxonomy.categories.count)
         labels = try EmbeddingMatrix(resource: "labels", rows: taxonomy.labels.count)

@@ -64,6 +64,11 @@ private struct ScanProgressRow: View {
             Text(total == 0 ? "Ищу новые фото…" : "Разбираю фото: \(done) из \(total)")
                 .font(.subheadline)
             ProgressView(value: Double(done), total: Double(max(total, 1)))
+            if #available(iOS 26, *), total > 0 {
+                Text("Можно свернуть приложение: разбор продолжится, ход виден на экране блокировки.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 4)
     }

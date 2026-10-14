@@ -78,12 +78,14 @@ final class LibraryStore {
                 buckets[analysis.effectiveCategoryID, default: []].append(id)
             }
         }
-        return taxonomy.categories
-            .compactMap { category in
+        let groups = taxonomy.allCategories
+            .compactMap { category -> CategoryGroup? in
                 guard let ids = buckets[category.id], !ids.isEmpty else { return nil }
                 return CategoryGroup(category: category, photoIDs: sortedNewestFirst(ids))
             }
             .sorted { $0.photoIDs.count > $1.photoIDs.count }
+        // «Прочее» всегда в конце
+        return groups.filter { $0.id != Taxonomy.otherID } + groups.filter { $0.id == Taxonomy.otherID }
     }
 
     func group(id: String) -> CategoryGroup? {
@@ -108,7 +110,7 @@ final class LibraryStore {
 
     func setCategory(_ categoryID: String, for id: String) {
         guard analyses[id] != nil else { return }
-        analyses[id]?.userCategoryID = categoryID == analyses[id]?.categoryID ? nil : categoryID
+        analyses[id]?.userCategoryID = categoryID == analyses[id]?.autoCategoryID ? nil : categoryID
         saveCache()
     }
 
@@ -129,6 +131,9 @@ final class LibraryStore {
         }
         scanTotal = todo.count
         scannedCount = 0
+        // На iOS 26 разбор не останавливается, если приложение свернуть
+        let background = BackgroundScan(total: todo.count)
+        defer { background?.finish() }
 
         for info in todo {
             if Task.isCancelled { break }
@@ -137,6 +142,7 @@ final class LibraryStore {
                 analyses[info.id] = analysis
             }
             scannedCount += 1
+            background?.advance(to: scannedCount)
             if scannedCount % 25 == 0 { saveCache() }
         }
         saveCache()

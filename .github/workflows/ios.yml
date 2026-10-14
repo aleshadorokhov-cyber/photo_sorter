@@ -45,6 +45,17 @@ jobs:
           pip install -r ml/requirements.txt
           python ml/export_models.py
 
+      # Нужен Xcode 26 с iOS 26 SDK: в нём разбор в фоне (BGContinuedProcessingTask)
+      - name: Выбрать Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)
+          if [ -z "$XCODE" ]; then
+            ls -d /Applications/Xcode*.app
+            echo "::error::На раннере нет Xcode 26"; exit 1
+          fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
       - name: Создать проект Xcode
         run: |
           brew install xcodegen
@@ -96,6 +107,17 @@ jobs:
         run: |
           pip install -r ml/requirements.txt
           python ml/export_models.py
+
+      # Нужен Xcode 26 с iOS 26 SDK: в нём разбор в фоне (BGContinuedProcessingTask)
+      - name: Выбрать Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)
+          if [ -z "$XCODE" ]; then
+            ls -d /Applications/Xcode*.app
+            echo "::error::На раннере нет Xcode 26"; exit 1
+          fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
 
       - name: Создать проект Xcode
         run: |
@@ -209,6 +231,17 @@ jobs:
           mkdir -p "$RUNNER_TEMP/keys"
           printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
           echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" >> "$GITHUB_ENV"
+
+      # Нужен Xcode 26 с iOS 26 SDK: в нём разбор в фоне (BGContinuedProcessingTask)
+      - name: Выбрать Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)
+          if [ -z "$XCODE" ]; then
+            ls -d /Applications/Xcode*.app
+            echo "::error::На раннере нет Xcode 26"; exit 1
+          fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
 
       - name: Создать проект Xcode
         run: |

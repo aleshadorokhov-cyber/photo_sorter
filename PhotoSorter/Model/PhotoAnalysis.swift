@@ -12,7 +12,13 @@ struct PhotoAnalysis: Codable, Hashable {
     /// Категория, которую человек выбрал вручную. Она важнее предложенной моделью.
     var userCategoryID: String?
 
-    var effectiveCategoryID: String { userCategoryID ?? categoryID }
+    /// Если модель уверена меньше чем на 60%, фото идёт в «Прочее», а не в сомнительную категорию.
+    /// Порог тот же, что в веб-версии: подобран на настоящих снимках
+    static let doubtThreshold: Float = 0.6
+
+    var isDoubtful: Bool { categoryConfidence < Self.doubtThreshold }
+    var autoCategoryID: String { isDoubtful ? Taxonomy.otherID : categoryID }
+    var effectiveCategoryID: String { userCategoryID ?? autoCategoryID }
 }
 
 enum Naming {

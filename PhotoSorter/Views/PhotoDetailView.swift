@@ -33,7 +33,7 @@ struct PhotoDetailView: View {
 
                 Section {
                     Picker("Категория", selection: categoryBinding(analysis)) {
-                        ForEach(store.taxonomy?.categories ?? []) { category in
+                        ForEach(store.taxonomy?.allCategories ?? []) { category in
                             Label(category.name, systemImage: category.symbol).tag(category.id)
                         }
                     }
@@ -42,6 +42,8 @@ struct PhotoDetailView: View {
                 } footer: {
                     if analysis.userCategoryID != nil {
                         Text("Выбрана вручную.")
+                    } else if analysis.isDoubtful {
+                        Text("Модель сомневается: больше всего похоже на «\(store.taxonomy?.category(id: analysis.categoryID)?.name ?? analysis.categoryID)» (\(percent(analysis.categoryConfidence))). Выберите категорию сами.")
                     } else {
                         Text("Модель уверена на \(percent(analysis.categoryConfidence)). Можно выбрать другую.")
                     }

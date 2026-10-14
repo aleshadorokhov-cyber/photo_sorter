@@ -20,9 +20,16 @@ struct Taxonomy: Decodable {
     let labels: [Label]
 
     static let screenshotsID = "screenshots"
+    static let otherID = "other"
+
+    /// Сюда попадают фото, в категории которых модель не уверена
+    static let other = Category(id: otherID, name: "Прочее", symbol: "tray", prompts: [])
+
+    /// Категории модели и «Прочее» последним
+    var allCategories: [Category] { categories + [Self.other] }
 
     func category(id: String) -> Category? {
-        categories.first { $0.id == id }
+        allCategories.first { $0.id == id }
     }
 
     static func loadFromBundle() throws -> Taxonomy {
