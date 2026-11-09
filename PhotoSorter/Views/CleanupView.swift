@@ -113,7 +113,7 @@ struct CleanupView: View {
             ForEach(Array(store.groups.enumerated()), id: \.element.id) { index, group in
                 Section("Группа \(index + 1) · \(group.photoIDs.count) фото") {
                     ForEach(group.photoIDs, id: \.self) { id in
-                        if let photo = store.photos.first(where: { $0.id == id }) {
+                        if let photo = store.photoIndex[id] {
                             CleanupRow(photo: photo, store: store, detail: id == group.keeperID ? "Предлагаем сохранить" : "Точный дубль")
                         }
                     }
@@ -121,9 +121,11 @@ struct CleanupView: View {
             }
         case .old:
             Section {
+                Button("Выбрать старые фото для просмотра") { store.selectOldPhotos() }
+                    .disabled(!store.valid || store.old.isEmpty)
                 ForEach(store.old) { CleanupRow(photo: $0, store: store, detail: "Дата съёмки до 01.01.2020") }
             } footer: {
-                Text("Возраст не означает, что фото лишнее. Снимки без даты не попадают в эту подборку. Граница — 1 января 2020 года, UTC.")
+                Text("Возраст не означает, что фото лишнее. Избранные и минимум одна копия из группы дублей сохраняются. Снимки без даты не попадают в подборку. Граница — 1 января 2020 года, UTC.")
             }
         case .text:
             Section {

@@ -51,10 +51,17 @@ enum CleanupPolicy {
     }
 
     static func duplicateSelection(_ groups: [DuplicateGroup], photos: [CleanupPhoto]) -> Set<String> {
-        let protected = Set(photos.filter(\.isFavorite).map(\.id))
-        return Set(groups.flatMap { group in
-            group.photoIDs.filter { $0 != group.keeperID && !protected.contains($0) }
-        })
+        let candidates = Set(groups.flatMap { group in group.photoIDs.filter { $0 != group.keeperID } })
+        return safeSelection(candidates: candidates, groups: groups, photos: photos)
+    }
+
+    static func safeSelection(candidates: Set<String>, groups: [DuplicateGroup], photos: [CleanupPhoto]) -> Set<String> {
+        let allowed = Set(photos.filter { !$0.isFavorite }.map(\.id))
+        var selection = candidates.intersection(allowed)
+        for group in groups where Set(group.photoIDs).isSubset(of: selection) {
+            selection.remove(group.keeperID)
+        }
+        return selection
     }
 
     static func deletionProblem(selected: Set<String>, photos: [CleanupPhoto], groups: [DuplicateGroup]) -> String? {

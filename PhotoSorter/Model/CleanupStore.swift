@@ -6,6 +6,7 @@ import UIKit
 @Observable
 final class CleanupStore {
     private(set) var photos: [CleanupPhoto] = []
+    private(set) var photoIndex: [String: CleanupPhoto] = [:]
     private(set) var groups: [DuplicateGroup] = []
     private(set) var selected: Set<String> = []
     private(set) var running = false
@@ -34,7 +35,7 @@ final class CleanupStore {
 
     func start(cached: [String: PhotoAnalysis]) {
         guard !running && !deleting else { return }
-        selected.removeAll(); photos = []; groups = []; valid = false
+        selected.removeAll(); photos = []; photoIndex = [:]; groups = []; valid = false
         scanned = 0; total = 0; skippedHashes = 0; unreadText = 0; message = nil
         running = true
         let network = allowCloudDownload, ocr = readText
@@ -97,6 +98,7 @@ final class CleanupStore {
             }
             if Task.isCancelled { break }
             photos.append(item)
+            photoIndex[item.id] = item
             scanned += 1
         }
         groups = CleanupPolicy.duplicates(photos)
@@ -116,6 +118,11 @@ final class CleanupStore {
     }
 
     func clearSelection() { selected.removeAll() }
+
+    func selectOldPhotos() {
+        guard valid, !running, !deleting else { return }
+        selected = CleanupPolicy.safeSelection(candidates: Set(old.map(\.id)), groups: groups, photos: photos)
+    }
 
     /// Refetch every photo involved in the plan, including keepers, immediately
     /// before the PhotoKit change. A changed date, favorite, or missing asset
@@ -149,7 +156,7 @@ final class CleanupStore {
             try await PHPhotoLibrary.shared().performChanges {
                 PHAssetChangeRequest.deleteAssets(assetsToDelete as NSArray)
             }
-            selected.removeAll(); valid = false; photos = []; groups = []
+            selected.removeAll(); valid = false; photos = []; photoIndex = [:]; groups = []
             message = "Удалено фото: \(assetsToDelete.count). Их можно восстановить в «Недавно удалённых». Проверьте медиатеку заново."
         } catch {
             // Also invalidate after cancellation: Photos may have changed while

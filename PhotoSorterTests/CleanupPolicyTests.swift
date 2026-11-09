@@ -44,6 +44,13 @@ final class CleanupPolicyTests: XCTestCase {
         XCTAssertEqual(CleanupPolicy.textHints(["СКИДКА 20%", "Заказать с доставкой"]), ["Возможно, реклама"])
     }
 
+    func testBulkOldSelectionProtectsFavoritesAndLastCopy() {
+        let photos = [photo("a"), photo("b"), photo("f", hash: nil, favorite: true), photo("old", hash: nil)]
+        let result = CleanupPolicy.safeSelection(candidates: ["a", "b", "f", "old", "missing"],
+                                                 groups: CleanupPolicy.duplicates(photos), photos: photos)
+        XCTAssertEqual(result, ["b", "old"])
+    }
+
     func testManualIsOnlyAHintNotAutomaticDeletion() {
         XCTAssertEqual(CleanupPolicy.textHints(["Руководство пользователя насоса"]), ["Возможно, инструкция"])
         XCTAssertTrue(CleanupPolicy.textHints(["Семейный праздник"]).isEmpty)
