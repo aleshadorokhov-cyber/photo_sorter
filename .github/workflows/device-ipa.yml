@@ -1,0 +1,73 @@
+name: Device IPA
+on:
+  push:
+    branches: [codex/ipa-device-2026-11-09]
+permissions:
+  contents: read
+concurrency:
+  group: device-ipa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  device:
+    name: Неподписанный IPA для iPhone
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: model-cache
+        with:
+          path: PhotoSorter/Generated
+          key: model-${{ hashFiles('ml/**', 'PhotoSorter/Resources/taxonomy.json') }}
+      - uses: actions/setup-python@v5
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        with:
+          python-version: "3.12"
+      - name: Подготовить модель
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        run: |
+          pip install -r ml/requirements.txt
+          python ml/export_models.py
+      - name: Выбрать Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | grep -vi beta | sort -V | tail -1)
+          test -n "$XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+      - name: Создать проект
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Собрать для iPhone
+        timeout-minutes: 12
+        run: |
+          xcodebuild build \
+            -project PhotoSorter.xcodeproj \
+            -scheme PhotoSorter \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/device-dd" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=44 \
+            > "$RUNNER_TEMP/device-build.log" 2>&1
+          APP="$RUNNER_TEMP/device-dd/Build/Products/Release-iphoneos/PhotoSorter.app"
+          test -d "$APP"
+          mkdir -p "$RUNNER_TEMP/package/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/package/Payload/"
+          (cd "$RUNNER_TEMP/package" && zip -qry "$GITHUB_WORKSPACE/PhotoSorter.ipa" Payload)
+          shasum -a 256 PhotoSorter.ipa > PhotoSorter.ipa.sha256
+          ls -lh PhotoSorter.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PhotoSorter-ipa
+          retention-days: 14
+          path: |
+            PhotoSorter.ipa
+            PhotoSorter.ipa.sha256
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Device-build-log
+          retention-days: 3
+          path: ${{ runner.temp }}/device-build.log
