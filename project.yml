@@ -7,7 +7,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.2.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
   PhotoSorter:
@@ -41,7 +41,7 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        NSPhotoLibraryUsageDescription: Приложение разбирает фото прямо на телефоне, чтобы разложить их по категориям. Сами фото никуда не отправляются.
+        NSPhotoLibraryUsageDescription: Приложение ищет дубли, старые фото и текст прямо на телефоне, создаёт альбомы и удаляет только выбранные вами снимки после подтверждения. Сами фото никуда не отправляются.
         # Разбор в фоне (BackgroundScan): идентификатор каждого разбора начинается с идентификатора приложения
         BGTaskSchedulerPermittedIdentifiers:
           - $(PRODUCT_BUNDLE_IDENTIFIER).*

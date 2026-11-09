@@ -35,23 +35,13 @@ enum PhotoLibrary {
     }
 
     /// Картинка со стороной не больше `side` точек. Фото из iCloud при необходимости скачиваются.
-    static func image(for asset: PHAsset, side: CGFloat) async -> UIImage? {
-        await withCheckedContinuation { continuation in
-            let options = PHImageRequestOptions()
-            options.deliveryMode = .highQualityFormat
-            options.resizeMode = .fast
-            options.isNetworkAccessAllowed = true
-            PHImageManager.default().requestImage(
-                for: asset,
-                targetSize: CGSize(width: side, height: side),
-                contentMode: .aspectFit,
-                options: options
-            ) { image, info in
-                // При highQualityFormat Photos вызывает обработчик один раз, но черновую картинку на всякий случай пропускаем.
-                if (info?[PHImageResultIsDegradedKey] as? Bool) == true { return }
-                continuation.resume(returning: image)
+    static func image(for asset: PHAsset, side: CGFloat, network: Bool = true) async -> UIImage? {
+        let operation = PhotoImageOperation()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                operation.start(asset: asset, side: side, network: network, continuation: continuation)
             }
-        }
+        } onCancel: { operation.cancel() }
     }
 
     static func image(id: String, side: CGFloat) async -> UIImage? {
@@ -68,6 +58,60 @@ enum PhotoLibrary {
                 }
             }
         return result
+    }
+}
+
+/// Cancels an in-flight iCloud/image request with its Swift task. PhotoKit may
+/// deliver multiple callbacks, including one after cancelImageRequest.
+private final class PhotoImageOperation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<UIImage?, Never>?
+    private var request: PHImageRequestID?
+    private var cancelled = false
+    private var finished = false
+
+    func start(asset: PHAsset, side: CGFloat, network: Bool, continuation: CheckedContinuation<UIImage?, Never>) {
+        lock.lock()
+        if cancelled { lock.unlock(); continuation.resume(returning: nil); return }
+        self.continuation = continuation
+        lock.unlock()
+        let options = PHImageRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.resizeMode = .fast
+        options.isNetworkAccessAllowed = network
+        let id = PHImageManager.default().requestImage(for: asset,
+            targetSize: CGSize(width: side, height: side), contentMode: .aspectFit, options: options) { [self] image, info in
+            if (info?[PHImageCancelledKey] as? Bool) == true || info?[PHImageErrorKey] != nil {
+                complete(nil)
+            } else if (info?[PHImageResultIsDegradedKey] as? Bool) != true {
+                complete(image)
+            }
+        }
+        lock.lock()
+        request = id
+        let shouldCancel = cancelled
+        lock.unlock()
+        if shouldCancel { PHImageManager.default().cancelImageRequest(id) }
+    }
+
+    private func complete(_ image: UIImage?) {
+        lock.lock()
+        guard !finished else { lock.unlock(); return }
+        finished = true
+        let callback = continuation
+        continuation = nil
+        let result = cancelled ? nil : image
+        lock.unlock()
+        callback?.resume(returning: result)
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let id = request
+        lock.unlock()
+        complete(nil)
+        if let id { PHImageManager.default().cancelImageRequest(id) }
     }
 }
 

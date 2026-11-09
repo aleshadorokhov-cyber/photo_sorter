@@ -23,7 +23,7 @@ jobs:
   build:
     name: Сборка и проверка
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -62,6 +62,7 @@ jobs:
           xcodegen generate
 
       - name: Собрать и проверить модель на симуляторе
+        timeout-minutes: 12
         run: |
           set -o pipefail
           xcodebuild -version
@@ -76,9 +77,20 @@ jobs:
             -scheme PhotoSorter \
             -configuration Debug \
             -destination "id=$DEVICE" \
+            -parallel-testing-enabled NO \
+            -resultBundlePath "$RUNNER_TEMP/PhotoSorter-tests.xcresult" \
             CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" \
-            | grep -E "Близость|error:|Test Case|Executed|\*\* (BUILD|TEST)"
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Сохранить журнал проверки
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoSorter-test-diagnostics
+          retention-days: 3
+          path: |
+            ${{ runner.temp }}/xcodebuild.log
+            ${{ runner.temp }}/PhotoSorter-tests.xcresult
 
   sidestore:
     name: Сборка .ipa для SideStore
