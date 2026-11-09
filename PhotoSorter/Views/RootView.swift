@@ -9,7 +9,13 @@ struct RootView: View {
             switch store.access {
             case .unknown: OnboardingView()
             case .denied: AccessDeniedView()
-            case .granted: CategoriesView()
+            case .granted:
+                TabView {
+                    CleanupView()
+                        .tabItem { Label("Очистка", systemImage: "sparkles") }
+                    CategoriesView()
+                        .tabItem { Label("Категории", systemImage: "square.grid.2x2") }
+                }
             }
         }
         .onChange(of: scenePhase) { _, phase in

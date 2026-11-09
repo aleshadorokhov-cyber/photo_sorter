@@ -6,7 +6,9 @@ enum TextReader {
     static func read(_ image: CGImage, orientation: CGImagePropertyOrientation) throws -> [String] {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
-        request.recognitionLanguages = ["ru-RU", "en-US"]
+        let supported = try request.supportedRecognitionLanguages()
+        request.recognitionLanguages = ["ru-RU", "en-US"].filter { supported.contains($0) }
+        request.automaticallyDetectsLanguage = true
         request.usesLanguageCorrection = true
         try VNImageRequestHandler(cgImage: image, orientation: orientation).perform([request])
         return (request.results ?? [])

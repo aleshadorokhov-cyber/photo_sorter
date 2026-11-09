@@ -35,12 +35,12 @@ enum PhotoLibrary {
     }
 
     /// Картинка со стороной не больше `side` точек. Фото из iCloud при необходимости скачиваются.
-    static func image(for asset: PHAsset, side: CGFloat) async -> UIImage? {
+    static func image(for asset: PHAsset, side: CGFloat, network: Bool = true) async -> UIImage? {
         await withCheckedContinuation { continuation in
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.resizeMode = .fast
-            options.isNetworkAccessAllowed = true
+            options.isNetworkAccessAllowed = network
             PHImageManager.default().requestImage(
                 for: asset,
                 targetSize: CGSize(width: side, height: side),
